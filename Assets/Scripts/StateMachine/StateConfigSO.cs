@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ObjectSystem;
+using Eraflo.Common.ObjectSystem;
 using UnityEngine;
 
 namespace FallGuys.StateMachine

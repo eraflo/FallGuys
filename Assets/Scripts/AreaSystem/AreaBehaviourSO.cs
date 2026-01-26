@@ -1,7 +1,7 @@
-using AreaSystem;
+using Eraflo.Common.AreaSystem;
+using Eraflo.Common.ObjectSystem;
 using FallGuys.ObjectSystem;
 using FallGuys.StateMachine;
-using ObjectSystem;
 using UnityEngine;
 
 namespace FallGuys.AreaSystem
