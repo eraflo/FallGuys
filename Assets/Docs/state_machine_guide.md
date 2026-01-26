@@ -126,8 +126,8 @@ public class MyNewStateSO : StateBaseSO
     public override void OnServerUpdate(Blackboard bb)
     {
         // Authoritative logic (Server only)
-        var owner = bb.GetOwner<BaseObject>();
-        if (owner.SomeValue > 10) { /* ... */ }
+        var ownerComponent = bb.GetOwner<SomeComponent>();
+        ownerComponent.DoSomething();
     }
 
     public override void OnClientUpdate(Blackboard bb)
@@ -181,8 +181,8 @@ public class IsReadyConditionSO : ConditionSO
 {
     public override bool IsMet(Blackboard bb)
     {
-        var owner = bb.GetOwner<BaseObject>();
-        return owner.IsReady; 
+        var ownerComponent = bb.GetOwner<SomeComponent>();
+        return ownerComponent.IsReady; 
     }
 }
 ```

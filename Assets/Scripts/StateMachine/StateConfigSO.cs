@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ObjectSystem;
 using UnityEngine;
 
 namespace FallGuys.StateMachine
@@ -8,7 +9,7 @@ namespace FallGuys.StateMachine
     /// Used for synchronizing state changes across the network efficiently.
     /// </summary>
     [CreateAssetMenu(fileName = "StateConfig", menuName = "StateMachine/StateConfig")]
-    public class StateConfigSO : ScriptableObject
+    public class StateConfigSO : LogicIdentitySO
     {
         [Tooltip("The ordered list of all possible states for a machine.")]
         public List<StateBaseSO> states;

@@ -1,6 +1,6 @@
-using Unity.Netcode;
 using System.Collections.Generic;
 using System.Threading;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace FallGuys.StateMachine
@@ -14,7 +14,7 @@ namespace FallGuys.StateMachine
         [Header("Configuration")]
         [SerializeField, Tooltip("The registry of all valid states for this machine.")]
         private StateConfigSO config;
-        
+
         [Header("Sync State")]
         [SerializeField, Tooltip("Synchronized index of the current state.")]
         private NetworkVariable<int> currentID = new NetworkVariable<int>(-1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -22,6 +22,14 @@ namespace FallGuys.StateMachine
         private StateBaseSO currentState;
         private Blackboard blackboard;
         private CancellationTokenSource stateCTS;
+
+        public Blackboard Blackboard => blackboard;
+
+
+        public void AddConfig(StateConfigSO stateConfig)
+        {
+            config = stateConfig;
+        }
 
         /// <summary>
         /// Initializes the state machine when spawned on the network.
@@ -149,7 +157,7 @@ namespace FallGuys.StateMachine
                 stateCTS?.Cancel();
                 stateCTS?.Dispose();
                 stateCTS = null;
-                
+
                 currentState.OnExit(blackboard);
                 currentState = null;
             }
@@ -178,7 +186,7 @@ namespace FallGuys.StateMachine
             if (!IsServer || currentState == null) return;
 
             Debug.Log($"[NetworkStateMachine] Action '{actionName}' received from Client {OwnerClientId}. Routing to {currentState.name}");
-            
+
             // Route the intent directly to the current server-side state logic
             currentState.OnActionReceived(blackboard, actionName);
         }
