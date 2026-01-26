@@ -51,5 +51,8 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "FallGuys.sln"
+    "dotnet.defaultSolution": "FallGuys.sln",
+    "dotrush.roslyn.projectOrSolutionFiles": [
+        "d:\\Cesi\\Cours\\5eme_annee\\RARV\\Projet\\FallGuys\\FallGuys.sln"
+    ]
 }
