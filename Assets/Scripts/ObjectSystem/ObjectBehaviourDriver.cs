@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using FallGuys.StateMachine;
 using ObjectSystem;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace FallGuys.ObjectSystem
@@ -10,6 +11,8 @@ namespace FallGuys.ObjectSystem
     {
         private BaseObject _baseObject;
         private NetworkStateMachine _stateMachine;
+
+        private LogicIdentitySO _config;
 
         private Blackboard _localBlackboard;
 
@@ -27,27 +30,35 @@ namespace FallGuys.ObjectSystem
             InitializeBlackboard();
         }
 
+        private void Update()
+        {
+            if (_config is SimpleBehaviourSO simpleSO)
+            {
+                simpleSO.OnUpdate(_baseObject, _localBlackboard);
+            }
+        }
+
         /// <summary>
         /// Initializes the linker.
         /// </summary>
         private void InitializeLinker()
         {
-            LogicIdentitySO config = _baseObject.RuntimeData.Config.LogicIdentity;
-            if (config == null)
+            _config = _baseObject.RuntimeData.Config.LogicIdentity;
+            if (_config == null)
             {
                 Debug.LogError("ObjectBehaviourDriver: StateConfigSO not found");
                 this.gameObject.SetActive(false);
                 return;
             }
 
-            if (config is StateConfigSO stateConfigSO)
+            if (_config is StateConfigSO stateConfigSO)
             {
                 _stateMachine = gameObject.AddComponent<NetworkStateMachine>();
                 _stateMachine.AddConfig(stateConfigSO);
             }
-            else if (config is SimpleBehaviourSO simpleBehaviourConfigSO)
+            else if (_config is SimpleBehaviourSO simpleBehaviourConfigSO)
             {
-                // _localBlackboard = new Blackboard();
+                _localBlackboard = new Blackboard(_baseObject.gameObject);
                 simpleBehaviourConfigSO.OnStart(_baseObject, _localBlackboard);
             }
         }
@@ -57,6 +68,10 @@ namespace FallGuys.ObjectSystem
         /// </summary>
         private void InitializeBlackboard()
         {
+            Blackboard targetBlackboard = (_stateMachine != null) ? _stateMachine.Blackboard : _localBlackboard;
+
+            if (targetBlackboard == null) return;
+
             ObjectSO config = _baseObject.RuntimeData.Config;
             var overrides = _baseObject.RuntimeData.Overrides;
 
@@ -76,7 +91,7 @@ namespace FallGuys.ObjectSystem
                 }
 
                 // 3. Injection dans le Blackboard
-                _stateMachine.Blackboard.Set(paramName, finalValue);
+                targetBlackboard.Set(paramName, finalValue);
             }
         }
     }
