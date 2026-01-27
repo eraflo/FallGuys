@@ -28,6 +28,24 @@ namespace FallGuys.AreaSystem
             }
         }
 
+        public override void OnStart(BaseObject owner, Blackboard blackboard)
+        {
+            base.OnStart(owner, blackboard);
+
+            if (!NetworkManager.Singleton.IsServer) return;
+
+            // When the level is loaded and the Start Zone is initialized, spawn the players!
+            if (PlayerManager.Singleton != null)
+            {
+                Debug.Log("[Race] START AREA: Level loaded, triggering player spawn.");
+                PlayerManager.Singleton.SpawnPlayers();
+            }
+            else
+            {
+                Debug.LogError("[Race] START AREA: PlayerManager.Singleton not found! Cannot spawn players.");
+            }
+        }
+
         protected override void OnAreaEnter(BaseObject owner, Blackboard blackboard, Collider other)
         {
             if (!NetworkManager.Singleton.IsServer) return;

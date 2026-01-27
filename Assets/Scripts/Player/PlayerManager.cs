@@ -3,32 +3,38 @@ using UnityEngine;
 
 public class PlayerManager : NetworkBehaviour
 {
+    public static PlayerManager Singleton { get; private set; }
+
+    private void Awake()
+    {
+        if (Singleton != null && Singleton != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Singleton = this;
+    }
+
     public GameObject playerPrefab;     // Prefab du joueur
     public Transform[] spawnPoints;      // Points de spawn
 
-    public override void OnNetworkSpawn()
+    [ServerRpc(RequireOwnership = false)]
+    public void StartGameServerRpc()
     {
-        if (IsServer)
-        {
-            // The NetworkManager usually handles player spawning via the PlayerPrefab property,
-            // but if we want custom spawn points or manual spawning, we do it here.
-            // For NGO, if a PlayerPrefab is set in NetworkManager, it spawns automatically.
-            // If the user wants to use THIS PlayerManager for manual spawning:
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-        }
+        if (!IsServer) return;
+        SpawnPlayers();
     }
 
-    public override void OnNetworkDespawn()
+    [ContextMenu("Spawn Players Now")] // Allows triggering from Inspector for testing
+    public void SpawnPlayers()
     {
-        if (IsServer && NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-        }
-    }
+        if (!IsServer) return;
 
-    private void OnClientConnected(ulong clientId)
-    {
-        SpawnPlayer(clientId);
+        Debug.Log("[PlayerManager] Spawning all connected players...");
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            SpawnPlayer(client);
+        }
     }
 
     private void SpawnPlayer(ulong clientId)

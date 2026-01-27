@@ -144,11 +144,12 @@ public class Player : NetworkBehaviour
 
             // Update sync variables for clients
             networkMoveSpeed.Value = _serverMoveDirection.magnitude;
-            // Robust Ground Check (Server side)
-            // Start the ray slightly inside the player to avoid hitting own collider
-            // IMPORTANT: Ensure 'groundLayer' in Inspector does NOT include the Player layer!
-            bool isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, groundCheckDistance + 0.1f, groundLayer, QueryTriggerInteraction.Ignore);
-            networkStateMachine.Blackboard.Set("IsGrounded", isGrounded);
+            // ROBUST CENTRALIZED GROUND CHECK
+            Vector3 rayStart = transform.position + Vector3.up * groundCheckOffset;
+            bool isGrounded = Physics.Raycast(rayStart, Vector3.down, groundCheckDistance + groundCheckOffset, groundLayer, QueryTriggerInteraction.Ignore);
+
+            // Visual feedback in Editor
+            Debug.DrawRay(rayStart, Vector3.down * (groundCheckDistance + groundCheckOffset), isGrounded ? Color.green : Color.red);
             networkIsGrounded.Value = isGrounded;
 
             if (!IsOwner) ServerLook(_serverLookInput, _serverCameraYaw);

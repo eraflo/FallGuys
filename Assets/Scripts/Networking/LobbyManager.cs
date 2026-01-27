@@ -1,8 +1,8 @@
-using Unity.Netcode;
-using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Netcode;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace FallGuys.Networking
@@ -37,7 +37,7 @@ namespace FallGuys.Networking
 
         public override int GetHashCode()
         {
-             return HashCode.Combine(ClientId, PlayerName, IsReady);
+            return HashCode.Combine(ClientId, PlayerName, IsReady);
         }
     }
 
@@ -66,11 +66,11 @@ namespace FallGuys.Networking
             {
                 Debug.Log($"[LobbyManager] Destroying duplicate instance {gameObject.GetInstanceID()}");
                 // On doit clean la liste qu'on vient de créer pour ne pas fuir sur le doublon !
-                ConnectedPlayers.Dispose(); 
+                ConnectedPlayers.Dispose();
                 Destroy(gameObject);
                 return;
             }
-            
+
             Singleton = this;
             Debug.Log($"[LobbyManager] Initialized Singleton {gameObject.GetInstanceID()}");
         }
@@ -96,7 +96,7 @@ namespace FallGuys.Networking
 
         private void CleanupNetworkList()
         {
-             // Only dispose if it was created and we are destroying the object
+            // Only dispose if it was created and we are destroying the object
             if (ConnectedPlayers != null)
             {
                 Debug.Log($"[LobbyManager] Disposing ConnectedPlayers NetworkList in instance {gameObject.GetInstanceID()}");
@@ -143,7 +143,7 @@ namespace FallGuys.Networking
 
         // Event invoked when any connection attempt (Host or Client) is started locally
         public event Action OnConnectionStarted;
-        
+
         // Event invoked when lobby is left (disconnected, kicked, or quit)
         public event Action OnLeftLobby;
 
@@ -174,11 +174,11 @@ namespace FallGuys.Networking
                 var transport = NetworkManager.Singleton.GetComponent<Unity.Netcode.Transports.UTP.UnityTransport>();
                 if (transport != null)
                 {
-                     // FIX: Use SetConnectionData
-                     if (port == 0) port = 7777;
-                     transport.SetConnectionData(ip, (ushort)port);
-                     
-                     Debug.Log($"[LobbyManager] Starting HOST bound to {ip}:{port}");
+                    // FIX: Use SetConnectionData
+                    if (port == 0) port = 7777;
+                    transport.SetConnectionData(ip, (ushort)port);
+
+                    Debug.Log($"[LobbyManager] Starting HOST bound to {ip}:{port}");
                 }
             }
             else
@@ -188,13 +188,13 @@ namespace FallGuys.Networking
             }
 
             NetworkManager.Singleton.StartHost();
-            
+
             // Start LAN Discovery Broadcast
             if (LanDiscoveryManager.Singleton != null)
             {
                 // We broadcast the IP we bound to, OR the local IP if we bound to all
                 string broadcastIp = !string.IsNullOrEmpty(ip) ? ip : GetLocalIPAddress();
-                
+
                 Debug.Log($"[LobbyManager] Starting Discovery Broadcast on Port: {port}...");
                 LanDiscoveryManager.Singleton.StartBroadcasting($"Host {Environment.UserName}", port, 1, _maxPlayers);
             }
@@ -215,8 +215,8 @@ namespace FallGuys.Networking
         {
             if (NetworkManager.Singleton == null)
             {
-                 Debug.LogError("NetworkManager.Singleton is null");
-                 return;
+                Debug.LogError("NetworkManager.Singleton is null");
+                return;
             }
 
             // Notify listeners (UI) that we are starting
@@ -259,11 +259,11 @@ namespace FallGuys.Networking
             {
                 NetworkManager.Singleton.Shutdown();
             }
-            
+
             // Cleanup list manually since we are leaving
             // If we are Host, the NetworkList will be destroyed when the object is destroyed/despawned
             // But good to clear local state
-            if(ConnectedPlayers != null && ConnectedPlayers.Count > 0) 
+            if (ConnectedPlayers != null && ConnectedPlayers.Count > 0)
             {
                 // We can't clear a NetworkList if we are not server or if network is down, 
                 // so we just notify UI via OnLeftLobby
@@ -297,7 +297,7 @@ namespace FallGuys.Networking
                     Debug.LogWarning($"Lobby is full. Client {clientId} cannot join. Disconnecting them.");
                     // Enforce Max Players: Disconnect the client immediately
                     // Note: In newer Netcode versions we can provide a reason string, but DisconnectClient is standard.
-                     NetworkManager.Singleton.DisconnectClient(clientId);
+                    NetworkManager.Singleton.DisconnectClient(clientId);
                     return;
                 }
                 // Add new player to the list
@@ -307,7 +307,7 @@ namespace FallGuys.Networking
 
         private void HandleClientDisconnected(ulong clientId)
         {
-             Debug.Log($"[LobbyManager] SERVER: Client Disconnected! ID={clientId}");
+            Debug.Log($"[LobbyManager] SERVER: Client Disconnected! ID={clientId}");
             if (IsServer)
             {
                 RemovePlayer(clientId);
@@ -318,16 +318,16 @@ namespace FallGuys.Networking
                     CountdownTimer.Value = 0;
                 }
             }
-            
+
             // Client Logic: If the Host (Server) disconnects, we need to handle it
             // usually clientId 0 is the server, but relying on IsServer check above covers host logic.
             // For CLIENTS: We need to subscribe to OnClientDisconnectCallback in OnNetworkSpawn locally!
         }
-        
+
         // --- Network Spawn Update ---
         public override void OnNetworkSpawn()
         {
-             if (IsServer)
+            if (IsServer)
             {
                 // Initialize server-side lobby state
                 CurrentLobbyState.Value = LobbyState.WaitingForPlayers;
@@ -349,7 +349,7 @@ namespace FallGuys.Networking
                 UpdateLobbyUI(); // Or whatever initial client UI update is needed
             }
         }
-        
+
         public override void OnNetworkDespawn()
         {
             if (IsServer)
@@ -365,7 +365,7 @@ namespace FallGuys.Networking
                     NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected_Local;
                 }
             }
-            
+
             // Do NOT Dispose the list here if the Manager persists!
             // CleanupNetworkList(); 
         }
@@ -452,7 +452,17 @@ namespace FallGuys.Networking
             if (IsServer)
             {
                 CurrentLobbyState.Value = LobbyState.GameLoading;
-                NetworkManager.Singleton.SceneManager.LoadScene(_gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+
+                // DELEGATE TO GAMEMANAGER: Centralized transition logic
+                if (FallGuys.Core.GameManager.Instance != null)
+                {
+                    FallGuys.Core.GameManager.Instance.OnLaunchGame();
+                }
+                else
+                {
+                    Debug.LogWarning("[LobbyManager] GameManager.Instance not found! Falling back to direct scene load.");
+                    NetworkManager.Singleton.SceneManager.LoadScene(_gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+                }
             }
         }
 
