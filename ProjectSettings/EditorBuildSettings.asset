@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Prototype Map Florian.unity
     guid: 03ed3121c080d904885ea5bc4c0cfcf3
+  - enabled: 1
+    path: Assets/Scenes/Prototype Map Manuel.unity
+    guid: a642825fba424d740a5209e20d46a421
   m_configObjects: {}
