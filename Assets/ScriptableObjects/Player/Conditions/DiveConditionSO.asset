@@ -9,6 +9,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7475c763d34e504482c1f61db89ec8e, type: 3}
-  m_Name: MovetoIdleConditionSO
+  m_Script: {fileID: 11500000, guid: 5182f8ed2d17f8f44a504137e2d9c948, type: 3}
+  m_Name: DiveConditionSO
   m_EditorClassIdentifier: 

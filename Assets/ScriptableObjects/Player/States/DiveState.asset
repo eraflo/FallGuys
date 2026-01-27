@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fd2db737fc3864d8ee3155714ed84b, type: 3}
+  m_Name: DiveState
+  m_EditorClassIdentifier: 
+  transitions:
+  - conditions:
+    - {fileID: 11400000, guid: 06df3341f0185864ab8d522c9a2d382b, type: 2}
+    targetState: {fileID: 11400000, guid: 98f819359dd64ce4fb7590a68d6b3c61, type: 2}
+  diveBoostForce: 15
+  diveDuration: 0.5
+  groundCheckDistance: 1.1
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 1

@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: StateConfig
   m_EditorClassIdentifier: 
   states:
-  - {fileID: 11400000, guid: f8cb69a0a5d8cb241a597906d3d70a3e, type: 2}
   - {fileID: 11400000, guid: 4eda22e401522ac44b39f58cd2364eeb, type: 2}
+  - {fileID: 11400000, guid: c6c9c294cf85da441ab84b560e37286c, type: 2}
+  - {fileID: 11400000, guid: 5c0ae069b6ae66e408b1e49e8e46148a, type: 2}
+  - {fileID: 11400000, guid: 98f819359dd64ce4fb7590a68d6b3c61, type: 2}

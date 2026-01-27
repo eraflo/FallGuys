@@ -9,17 +9,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c2cff2d681bf5243a905b7d86ffe6f8, type: 3}
-  m_Name: MoveState
+  m_Script: {fileID: 11500000, guid: 714ee028df521214386e7f6326c133ed, type: 3}
+  m_Name: JumpState
   m_EditorClassIdentifier: 
   transitions:
   - conditions:
-    - {fileID: 11400000, guid: fc1298f52ecbc1a43aa3d14093a82ffc, type: 2}
-    targetState: {fileID: 11400000, guid: 5c0ae069b6ae66e408b1e49e8e46148a, type: 2}
+    - {fileID: 11400000, guid: 4478e65480f8e8640a0aad2518d3dd67, type: 2}
+    targetState: {fileID: 11400000, guid: 4eda22e401522ac44b39f58cd2364eeb, type: 2}
   - conditions:
     - {fileID: 11400000, guid: 2be86a52ad7a3164d90e6615e7639174, type: 2}
     targetState: {fileID: 11400000, guid: c6c9c294cf85da441ab84b560e37286c, type: 2}
-  acceleration: 50
-  maxSpeed: 8
-  friction: 10
-  rotationSpeed: 10
+  jumpHeight: 2
+  fallMultiplier: 2.5
+  lowJumpMultiplier: 2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 1
+  airControlAcceleration: 20
+  maxAirSpeed: 6

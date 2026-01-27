@@ -9,6 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 949aca9203708d14f8edcdc945d9dd09, type: 3}
-  m_Name: IdletoMove
+  m_Script: {fileID: 11500000, guid: 9b50e5911e600494b9012894ea6b45af, type: 3}
+  m_Name: LandConditionSO
   m_EditorClassIdentifier: 
+  groundCheckDistance: 1.1
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 1
