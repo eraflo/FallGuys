@@ -1,7 +1,7 @@
-using UnityEngine;
 using System.Collections.Generic;
 using FallGuys.Networking;
 using TMPro;
+using UnityEngine;
 
 public class LobbyListUI : MonoBehaviour
 {
@@ -9,12 +9,11 @@ public class LobbyListUI : MonoBehaviour
     [SerializeField] private GameObject _lobbyEntryPrefab;
 
     private Dictionary<string, LobbyEntry> _discoveredLobbies = new Dictionary<string, LobbyEntry>();
-    private float _refreshTimer = 0f;
 
     private void OnEnable()
     {
         var discovery = LanDiscoveryManager.Singleton;
-        
+
         // Fallback: Try to find it in scene if Singleton isn't ready (Execution Order issue)
         if (discovery == null)
         {
@@ -52,15 +51,15 @@ public class LobbyListUI : MonoBehaviour
         // Only if empty to avoid clutter
         if (_discoveredLobbies.Count == 0)
         {
-             // Create fake entry
-             LobbyEntry fake = new LobbyEntry("127.0.0.1", 7777, "TEST SERVER (SIMULATION)", 1, 4);
-             HandleLobbyFound(fake);
-             
-             // Also force layout rebuild in case it's wonky
-             if (_container != null) 
-             {
-                 UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(_container.GetComponent<RectTransform>());
-             }
+            // Create fake entry
+            LobbyEntry fake = new LobbyEntry("127.0.0.1", 7777, "TEST SERVER (SIMULATION)", 1, 4);
+            HandleLobbyFound(fake);
+
+            // Also force layout rebuild in case it's wonky
+            if (_container != null)
+            {
+                UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(_container.GetComponent<RectTransform>());
+            }
         }
     }
 
@@ -94,23 +93,23 @@ public class LobbyListUI : MonoBehaviour
         GameObject go = Instantiate(_lobbyEntryPrefab, _container);
         go.transform.localScale = Vector3.one;
         go.SetActive(true); // Fix: Ensure it's visible!
-        
+
         LobbyEntryUI ui = go.GetComponent<LobbyEntryUI>();
         if (ui != null)
         {
             ui.Initialize(entry);
         }
     }
-    
+
     private void UpdateUI()
     {
         // Simple full rebuild or targeted update could go here if we tracked instances
         // For simplicity, we just add new ones in HandleLobbyFound
     }
-    
+
     public void RefreshList()
     {
-        foreach(Transform child in _container)
+        foreach (Transform child in _container)
         {
             Destroy(child.gameObject);
         }

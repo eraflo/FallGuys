@@ -12,24 +12,6 @@ namespace FallGuys.AreaSystem
         {
             if (owner is AreaDetector areaDetector)
             {
-                // Sync initial size/radius from blackboard (handles LevelEditable overrides)
-                if (blackboard.Has("_areaSize"))
-                {
-                    areaDetector.SetSize(blackboard.Get<Vector3>("_areaSize"));
-                }
-                if (blackboard.Has("_radius"))
-                {
-                    areaDetector.SetRadius(blackboard.Get<float>("_radius"));
-                }
-                if (blackboard.Has("_capsuleHeight"))
-                {
-                    areaDetector.SetHeight(blackboard.Get<float>("_capsuleHeight"));
-                }
-                if (blackboard.Has("_capsuleDirection"))
-                {
-                    areaDetector.SetDirection(blackboard.Get<int>("_capsuleDirection"));
-                }
-
                 areaDetector.onTriggerEnter += (other) => OnAreaEnter(owner, blackboard, other);
                 areaDetector.onTriggerStay += (other) => OnAreaStay(owner, blackboard, other);
                 areaDetector.onTriggerExit += (other) => OnAreaExit(owner, blackboard, other);
