@@ -1,4 +1,3 @@
-using Eraflo.Common.AreaSystem;
 using Eraflo.Common.ObjectSystem;
 using FallGuys.ObjectSystem;
 using FallGuys.StateMachine;
@@ -10,12 +9,9 @@ namespace FallGuys.AreaSystem
     {
         public override void OnStart(BaseObject owner, Blackboard blackboard)
         {
-            if (owner is AreaDetector areaDetector)
-            {
-                areaDetector.onTriggerEnter += (other) => OnAreaEnter(owner, blackboard, other);
-                areaDetector.onTriggerStay += (other) => OnAreaStay(owner, blackboard, other);
-                areaDetector.onTriggerExit += (other) => OnAreaExit(owner, blackboard, other);
-            }
+            owner.onTriggerEnter += (other) => OnAreaEnter(owner, blackboard, other);
+            owner.onTriggerStay += (other) => OnAreaStay(owner, blackboard, other);
+            owner.onTriggerExit += (other) => OnAreaExit(owner, blackboard, other);
         }
 
         protected abstract void OnAreaEnter(BaseObject owner, Blackboard blackboard, Collider other);

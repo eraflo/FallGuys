@@ -10,9 +10,14 @@ namespace FallGuys.ObjectSystem
     /// It resolves the logic key via the LogicRegistry and automatically adds the required 
     /// components (StateMachine vs SimpleBehaviour) based on the resolved asset type.
     /// </summary>
-    [RequireComponent(typeof(BaseObject))]
     public class ObjectBehaviourDriver : MonoBehaviour
     {
+        [Header("Anchor Settings")]
+        [SerializeField] private bool _needsNetworkObject = true;
+        [SerializeField] private bool _needsNetworkTransform = false;
+        [SerializeField] private bool _needsNetworkRigidbody = false;
+        [SerializeField] private bool _needsNetworkAnimator = false;
+
         private BaseObject _baseObject;
         private NetworkStateMachine _stateMachine;
         private LogicIdentitySO _config;
@@ -20,10 +25,16 @@ namespace FallGuys.ObjectSystem
 
         private void Start()
         {
+            // Search on self first, then in children to support the "Network Anchor" pattern
             _baseObject = GetComponent<BaseObject>();
             if (_baseObject == null)
             {
-                Debug.LogError("ObjectBehaviourDriver: BaseObject not found");
+                _baseObject = GetComponentInChildren<BaseObject>();
+            }
+
+            if (_baseObject == null)
+            {
+                Debug.LogError("ObjectBehaviourDriver: BaseObject not found on self or children");
                 this.gameObject.SetActive(false);
                 return;
             }
