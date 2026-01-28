@@ -1,5 +1,6 @@
 using Eraflo.Common.AreaSystem;
 using Eraflo.Common.ObjectSystem;
+using Eraflo.Common.Player;
 using FallGuys.StateMachine;
 using Unity.Netcode;
 using UnityEngine;

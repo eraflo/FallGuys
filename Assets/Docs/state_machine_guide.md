@@ -49,10 +49,14 @@ classDiagram
         <<ScriptableObject>>
         +List~Transition~ transitions
         +OnEnter(Blackboard bb, CancellationToken ct)
+        +OnServerEnter(Blackboard bb, CancellationToken ct)
+        +OnClientEnter(Blackboard bb, CancellationToken ct)
         +OnUpdate(Blackboard bb)
         +OnServerUpdate(Blackboard bb)
         +OnClientUpdate(Blackboard bb)
         +OnExit(Blackboard bb)
+        +OnServerExit(Blackboard bb)
+        +OnClientExit(Blackboard bb)
     }
 
     class ConditionSO {
@@ -98,18 +102,22 @@ sequenceDiagram
     S_NSM->>S_State: OnServerUpdate(blackboard)
     
     alt Transition to Index 2
+        S_NSM->>S_State: OnServerExit(blackboard)
         S_NSM->>S_State: OnExit(blackboard)
         S_NSM->>NV: Value = 2
         S_NSM->>S_NSM: Cancel current Task
         S_NSM->>Config: GetStateByID(2)
         S_NSM->>S_NSM: newState.OnEnter(blackboard, new CT)
+        S_NSM->>S_NSM: newState.OnServerEnter(blackboard, new CT)
     end
 
     NV-->>C_NSM: OnValueChanged (2)
     C_NSM->>C_NSM: Cancel current Task
+    C_NSM->>C_NSM: oldState.OnClientExit(blackboard)
     C_NSM->>C_NSM: oldState.OnExit(blackboard)
     C_NSM->>Config: GetStateByID(2)
     C_NSM->>C_NSM: newState.OnEnter(blackboard, new CT)
+    C_NSM->>C_NSM: newState.OnClientEnter(blackboard, new CT)
 ```
 
 ---
@@ -147,24 +155,24 @@ Add your new asset to the `States` list of your **`StateConfigSO`** asset. The i
 
 ---
 
-## 4. Understanding Update Hooks
+## 4. Understanding Lifecycle Hooks
 
-The state machine provides three distinct update hooks to handle network roles efficiently:
+The state machine provides distinct hooks to handle network roles efficiently:
 
-### A. `OnUpdate(Blackboard bb)`
-- **Executed on**: Server AND All Clients.
-- **Usage**: Shared logic that doesn't affect authority but needs to be seen by everyone.
-- *Examples*: Standard movement interpolation, rotating constant objects.
+### Entry Hooks
+- **`OnEnter(bb, ct)`**: Executed on **EVERYONE**. Use for shared initialization.
+- **`OnServerEnter(bb, ct)`**: Executed on **SERVER ONLY**. Use for authoritative initialization (physics, data).
+- **`OnClientEnter(bb, ct)`**: Executed on **CLIENTS ONLY**. Use for local visuals/audio.
 
-### B. `OnServerUpdate(Blackboard bb)`
-- **Executed on**: Server ONLY.
-- **Usage**: Authoritative logic, physics modifications, damage calculation, and transition checks.
-- *Examples*: Increasing score, checking if a player is in a zone, evaluating transitions.
+### Update Hooks
+- **`OnUpdate(bb)`**: Executed on **EVERYONE**. Use for shared interpolation/logic.
+- **`OnServerUpdate(bb)`**: Executed on **SERVER ONLY**. Use for physics manipulation and transition checks.
+- **`OnClientUpdate(bb)`**: Executed on **CLIENTS ONLY**. Use for purely visual local effects.
 
-### C. `OnClientUpdate(Blackboard bb)`
-- **Executed on**: Clients ONLY (Owner + Proxies).
-- **Usage**: Purely visual or local logic.
-- *Examples*: Camera shake for the owner, pulsating UI, spawning local particles.
+### Exit Hooks
+- **`OnExit(bb)`**: Executed on **EVERYONE**. Use for shared cleanup.
+- **`OnServerExit(bb)`**: Executed on **SERVER ONLY**. Use for authoritative cleanup.
+- **`OnClientExit(bb)`**: Executed on **CLIENTS ONLY**. Use for local visual cleanup.
 
 ---
 

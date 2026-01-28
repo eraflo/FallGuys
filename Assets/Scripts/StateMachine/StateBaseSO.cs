@@ -14,7 +14,7 @@ namespace FallGuys.StateMachine
     {
         [Tooltip("All conditions must be true (AND logic).")]
         public List<ConditionSO> conditions;
-        
+
         [Tooltip("The state to switch to if all conditions are met.")]
         public StateBaseSO targetState;
 
@@ -48,41 +48,37 @@ namespace FallGuys.StateMachine
         /// <summary>
         /// Called when the state is entered on both Server and Clients.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
-        /// <param name="ct">Cancellation token for async operations.</param>
         public virtual void OnEnter(Blackboard bb, CancellationToken ct) { }
+
+        public virtual void OnServerEnter(Blackboard bb, CancellationToken ct) { }
+        public virtual void OnClientEnter(Blackboard bb, CancellationToken ct) { }
 
         /// <summary>
         /// Called every frame on both Server and Clients.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
         public virtual void OnUpdate(Blackboard bb) { }
 
         /// <summary>
         /// Called every frame ONLY on the Server.
-        /// Use this for authoritative logic and state changes.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
         public virtual void OnServerUpdate(Blackboard bb) { }
 
         /// <summary>
         /// Called every frame ONLY on Clients.
-        /// Use this for visual fluff, prediction, or local-only effects.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
         public virtual void OnClientUpdate(Blackboard bb) { }
 
         /// <summary>
         /// Called when the state is exited on both Server and Clients.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
         public virtual void OnExit(Blackboard bb) { }
+
+        public virtual void OnServerExit(Blackboard bb) { }
+        public virtual void OnClientExit(Blackboard bb) { }
 
         /// <summary>
         /// Called when a generic action/intent is received via RPC.
         /// </summary>
-        /// <param name="bb">The instance blackboard.</param>
-        /// <param name="actionName">The name of the action requested.</param>
         public virtual void OnActionReceived(Blackboard bb, string actionName) { }
     }
 }
