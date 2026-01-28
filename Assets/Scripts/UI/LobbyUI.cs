@@ -34,7 +34,6 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _countdownText;
 
     private bool _isReady = false;
-    private int _lastPlayerCount = -1;
 
     private void Awake()
     {
@@ -267,7 +266,6 @@ public class LobbyUI : MonoBehaviour
 
         UnsubscribeFromLobbyEvents();
         _isReady = false;
-        _lastPlayerCount = -1;
     }
 
     private void LogMissingLobbyManager()

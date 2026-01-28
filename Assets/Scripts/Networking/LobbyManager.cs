@@ -57,8 +57,6 @@ namespace FallGuys.Networking
         [SerializeField] private int _maxPlayers = 4; // Maximum number of players allowed in the lobby
         public int MaxPlayers => _maxPlayers;
 
-        // --- Private State ---
-        private bool _wasConnectedAsClient = false;
         private Coroutine _connectionTimeoutCoroutine;
         private const float CONNECTION_TIMEOUT = 3f; // Seconds to wait for connection
 
@@ -351,7 +349,6 @@ namespace FallGuys.Networking
                 NetworkManager.Singleton.Shutdown();
             }
 
-            _wasConnectedAsClient = false;
             OnLeftLobby?.Invoke();
 
             // Return to lobby scene
@@ -433,9 +430,7 @@ namespace FallGuys.Networking
             {
                 // Client-side, subscribe to state changes
                 CurrentLobbyState.OnValueChanged += OnLobbyStateChanged;
-                // Mark that we're connected as client for Update polling
-                _wasConnectedAsClient = true;
-                Debug.Log("[LobbyManager] CLIENT: Marked as connected (_wasConnectedAsClient = true)");
+                Debug.Log("[LobbyManager] CLIENT: Marked as connected");
             }
 
             ConnectedPlayers.OnListChanged += OnConnectedPlayersChanged;
