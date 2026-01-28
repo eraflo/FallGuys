@@ -23,7 +23,14 @@ namespace FallGuys.StateMachine
         private Blackboard blackboard;
         private CancellationTokenSource stateCTS;
 
-        public Blackboard Blackboard => blackboard;
+        public Blackboard Blackboard
+        {
+            get
+            {
+                if (blackboard == null) blackboard = new Blackboard(gameObject, this);
+                return blackboard;
+            }
+        }
 
 
         public void AddConfig(StateConfigSO stateConfig)
@@ -36,7 +43,7 @@ namespace FallGuys.StateMachine
         /// </summary>
         public override void OnNetworkSpawn()
         {
-            blackboard = new Blackboard(gameObject, this);
+            if (blackboard == null) blackboard = new Blackboard(gameObject, this);
             currentID.OnValueChanged += OnStateIDChanged;
 
             // Handle initial state or late joining sync
@@ -76,7 +83,9 @@ namespace FallGuys.StateMachine
                 currentState.OnServerUpdate(blackboard);
                 ProcessTransitions();
             }
-            else
+
+            // Visuals/Animations should run on everyone (Host and Clients)
+            if (IsClient)
             {
                 currentState.OnClientUpdate(blackboard);
             }
@@ -133,7 +142,6 @@ namespace FallGuys.StateMachine
         /// <summary>
         /// Internal logic to perform the state switch lifecycle (Exit -> Enter).
         /// </summary>
-        /// <param name="index">The new state index mapping.</param>
         private void SwitchToState(int index)
         {
             ExitCurrentState();
@@ -142,7 +150,21 @@ namespace FallGuys.StateMachine
             if (currentState != null)
             {
                 stateCTS = new CancellationTokenSource();
+
+                // 1. Unified Enter
                 currentState.OnEnter(blackboard, stateCTS.Token);
+
+                // 2. Role-specific Enter
+                if (IsServer)
+                {
+                    currentState.OnServerEnter(blackboard, stateCTS.Token);
+                }
+
+                if (IsClient)
+                {
+                    currentState.OnClientEnter(blackboard, stateCTS.Token);
+                }
+
                 Debug.Log($"[NetworkStateMachine] Entered state: {currentState.name} on {(IsServer ? "Server" : "Client")}");
             }
         }
@@ -154,11 +176,24 @@ namespace FallGuys.StateMachine
         {
             if (currentState != null)
             {
+                // 1. Role-specific Exit
+                if (IsServer)
+                {
+                    currentState.OnServerExit(blackboard);
+                }
+
+                if (IsClient)
+                {
+                    currentState.OnClientExit(blackboard);
+                }
+
+                // 2. Unified Exit
+                currentState.OnExit(blackboard);
+
                 stateCTS?.Cancel();
                 stateCTS?.Dispose();
                 stateCTS = null;
 
-                currentState.OnExit(blackboard);
                 currentState = null;
             }
         }

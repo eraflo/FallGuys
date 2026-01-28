@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d95b11c7c94ecd4888a34a54c65bfb0, type: 3}
+  m_Name: RecoveryState
+  m_EditorClassIdentifier: 
+  transitions:
+  - conditions:
+    - {fileID: 11400000, guid: 8b5a0139366307140bca25fc78f0ec4f, type: 2}
+    targetState: {fileID: 11400000, guid: 4eda22e401522ac44b39f58cd2364eeb, type: 2}
+  recoveryDuration: 1
+  slideFriction: 10
+  movementRestriction: 0.2

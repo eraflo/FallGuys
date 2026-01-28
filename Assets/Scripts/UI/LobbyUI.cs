@@ -1,9 +1,9 @@
-using UnityEngine;
-using Unity.Netcode;
-using TMPro;
-using UnityEngine.UI;
 using System.Collections.Generic;
 using FallGuys.Networking;
+using TMPro;
+using Unity.Netcode;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class LobbyUI : MonoBehaviour
 {
@@ -17,7 +17,7 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private Button _hostButton;
     [SerializeField] private Button _clientButton;     // Direct Connect
     [SerializeField] private Button _browserButton;    // Open Browser
-    
+
     [Header("Connection Inputs")]
     [SerializeField] private TMP_InputField _ipInput;
     [SerializeField] private TMP_InputField _portInput;
@@ -46,13 +46,13 @@ public class LobbyUI : MonoBehaviour
             {
                 var t = canvas.transform.Find("ConnectionPanel");
                 if (t != null) _connectionPanel = t.gameObject;
-                
+
                 var tLobby = canvas.transform.Find("LobbyPanel");
                 if (tLobby != null) _lobbyPanel = tLobby.gameObject;
-                
+
                 var tBrowser = canvas.transform.Find("BrowserPanel");
                 if (tBrowser != null) _browserPanel = tBrowser.gameObject;
-                
+
                 var tLoad = canvas.transform.Find("LoadingPanel");
                 if (tLoad != null) _loadingPanel = tLoad.gameObject;
             }
@@ -64,39 +64,39 @@ public class LobbyUI : MonoBehaviour
             if (_hostButton == null) _hostButton = FindButton(_connectionPanel.transform, "Btn_HOST");
             if (_clientButton == null) _clientButton = FindButton(_connectionPanel.transform, "Btn_REJOINDRE");
             if (_browserButton == null) _browserButton = FindButton(_connectionPanel.transform, "Btn_LISTE");
-            
+
             if (_ipInput == null) _ipInput = _connectionPanel.transform.GetComponentInChildren<TMP_InputField>(); // Fallback
             // Ideally specific search but simplified for crash prevention
         }
 
         if (_lobbyPanel != null)
         {
-             if (_countdownText == null) 
-             {
-                 var t = _lobbyPanel.transform.Find("Txt_Countdown");
-                 if (t) _countdownText = t.GetComponent<TextMeshProUGUI>();
-             }
-             if (_readyButton == null) _readyButton = FindButton(_lobbyPanel.transform, "Btn_PRÊT", "Btn_Ready");
-             if (_leaveButton == null) _leaveButton = FindButton(_lobbyPanel.transform, "Btn_QUITTER", "Btn_Leave");
+            if (_countdownText == null)
+            {
+                var t = _lobbyPanel.transform.Find("Txt_Countdown");
+                if (t) _countdownText = t.GetComponent<TextMeshProUGUI>();
+            }
+            if (_readyButton == null) _readyButton = FindButton(_lobbyPanel.transform, "Btn_PRÊT", "Btn_Ready");
+            if (_leaveButton == null) _leaveButton = FindButton(_lobbyPanel.transform, "Btn_QUITTER", "Btn_Leave");
         }
-        
+
         if (_browserPanel != null)
         {
-             if (_backToMenuButton == null) _backToMenuButton = FindButton(_browserPanel.transform, "Btn_RETOUR");
+            if (_backToMenuButton == null) _backToMenuButton = FindButton(_browserPanel.transform, "Btn_RETOUR");
         }
     }
 
     private Button FindButton(Transform root, params string[] names)
     {
-        foreach(var n in names)
+        foreach (var n in names)
         {
             var t = root.Find(n);
             if (t == null)
             {
                 // Try fuzzy
-                foreach(Transform child in root)
+                foreach (Transform child in root)
                 {
-                   if (child.name.Contains(n.Split('_')[1])) { t = child; break; }
+                    if (child.name.Contains(n.Split('_')[1])) { t = child; break; }
                 }
             }
             if (t != null) return t.GetComponent<Button>();
@@ -107,7 +107,7 @@ public class LobbyUI : MonoBehaviour
     private void Start()
     {
         // Safety Check
-        if (_connectionPanel == null) 
+        if (_connectionPanel == null)
         {
             Debug.LogError("❌ CRITICAL: UI Panels not found! Run 'Tools > GENERATE FULL UI' to fix.");
             return;
@@ -115,9 +115,9 @@ public class LobbyUI : MonoBehaviour
 
         // Setup initial
         _connectionPanel.SetActive(true);
-        if(_lobbyPanel) _lobbyPanel.SetActive(false);
-        if(_loadingPanel) _loadingPanel.SetActive(false);
-        if(_browserPanel != null) _browserPanel.SetActive(false);
+        if (_lobbyPanel) _lobbyPanel.SetActive(false);
+        if (_loadingPanel) _loadingPanel.SetActive(false);
+        if (_browserPanel != null) _browserPanel.SetActive(false);
 
         _countdownText.text = "";
 
@@ -125,22 +125,25 @@ public class LobbyUI : MonoBehaviour
         if (LobbyManager.Singleton != null)
         {
             LobbyManager.Singleton.OnConnectionStarted += OnConnectionStarted;
-             LobbyManager.Singleton.OnLeftLobby += OnLeftLobby;
+            LobbyManager.Singleton.OnConnectionSuccess += OnConnectionSuccess;
+            LobbyManager.Singleton.OnConnectionFailed += OnConnectionFailed;
+            LobbyManager.Singleton.OnLeftLobby += OnLeftLobby;
         }
 
         if (_hostButton != null)
         {
-                _hostButton.onClick.AddListener(() => {
+            _hostButton.onClick.AddListener(() =>
+            {
                 if (LobbyManager.Singleton != null)
                 {
                     string ip = _ipInput != null ? _ipInput.text : "";
                     int port = 0;
                     string portText = _portInput != null ? _portInput.text : "NULL";
-                    
+
                     if (_portInput != null && int.TryParse(_portInput.text, out int p)) port = p;
-                    
+
                     Debug.Log($"[LobbyUI] HOST REQUESTED. IP: '{ip}', Port Input: '{portText}' -> Parsed: {port}");
-                    
+
                     LobbyManager.Singleton.StartHost(ip, port);
                 }
                 else LogMissingLobbyManager();
@@ -150,46 +153,47 @@ public class LobbyUI : MonoBehaviour
 
         if (_clientButton != null)
         {
-            _clientButton.onClick.AddListener(() => {
-                 if (LobbyManager.Singleton != null)
+            _clientButton.onClick.AddListener(() =>
+            {
+                if (LobbyManager.Singleton != null)
                 {
                     string ip = _ipInput != null ? _ipInput.text : "";
                     int port = 0;
                     if (_portInput != null && int.TryParse(_portInput.text, out int p)) port = p;
                     Debug.Log($"[LobbyUI] Click 'Rejoindre Direct'. Inputs -> IP: '{ip}', Port: '{port}'");
-                    LobbyManager.Singleton.StartClient(ip, port); 
+                    LobbyManager.Singleton.StartClient(ip, port);
                 }
-                 else LogMissingLobbyManager();
+                else LogMissingLobbyManager();
             });
         }
         else Debug.LogError("[LobbyUI] '_clientButton' is not assigned!");
 
         if (_browserButton != null)
         {
-            _browserButton.onClick.AddListener(() => {
+            _browserButton.onClick.AddListener(() =>
+            {
                 _connectionPanel.SetActive(false);
-                if(_browserPanel != null) 
+                if (_browserPanel != null)
                 {
                     _browserPanel.SetActive(true);
-                    // Force simulation (Fallback if empty)
-                    var listUI = FindFirstObjectByType<LobbyListUI>();
-                    if (listUI != null) listUI.SimulateTestServer();
                 }
             });
         }
 
         if (_backToMenuButton != null)
         {
-             _backToMenuButton.onClick.AddListener(() => {
-                if(_browserPanel != null) _browserPanel.SetActive(false);
+            _backToMenuButton.onClick.AddListener(() =>
+            {
+                if (_browserPanel != null) _browserPanel.SetActive(false);
                 _connectionPanel.SetActive(true);
             });
         }
-        
+
         if (_leaveButton != null)
         {
-            _leaveButton.onClick.AddListener(() => {
-                 if (LobbyManager.Singleton != null)
+            _leaveButton.onClick.AddListener(() =>
+            {
+                if (LobbyManager.Singleton != null)
                 {
                     LobbyManager.Singleton.Shutdown();
                 }
@@ -198,8 +202,9 @@ public class LobbyUI : MonoBehaviour
 
         if (_readyButton != null)
         {
-            _readyButton.onClick.AddListener(() => {
-                if(LobbyManager.Singleton == null) return;
+            _readyButton.onClick.AddListener(() =>
+            {
+                if (LobbyManager.Singleton == null) return;
                 _isReady = !_isReady;
                 UpdateReadyButtonState();
                 LobbyManager.Singleton.SetPlayerReadyServerRpc(NetworkManager.Singleton.LocalClientId, _isReady);
@@ -211,44 +216,63 @@ public class LobbyUI : MonoBehaviour
     {
         if (LobbyManager.Singleton != null)
         {
-            try 
+            try
             {
                 LobbyManager.Singleton.OnConnectionStarted -= OnConnectionStarted;
+                LobbyManager.Singleton.OnConnectionSuccess -= OnConnectionSuccess;
+                LobbyManager.Singleton.OnConnectionFailed -= OnConnectionFailed;
                 LobbyManager.Singleton.OnLeftLobby -= OnLeftLobby;
             }
-            catch {}
+            catch { }
         }
         UnsubscribeFromLobbyEvents();
     }
 
     private void OnConnectionStarted()
     {
-        // Switch to Lobby UI
-        if(_browserPanel != null) _browserPanel.SetActive(false);
+        // Show loading state - connecting...
+        if (_browserPanel != null) _browserPanel.SetActive(false);
         _connectionPanel.SetActive(false);
-        
+        _lobbyPanel.SetActive(false);
+        _loadingPanel.SetActive(true);
+    }
+
+    private void OnConnectionSuccess()
+    {
+        // Connection confirmed - hide all other panels and show lobby
+        if (_browserPanel != null) _browserPanel.SetActive(false);
+        _loadingPanel.SetActive(false);
+        _connectionPanel.SetActive(false);
         ShowLobby();
         SubscribeToLobbyEvents();
     }
-    
+
+    private void OnConnectionFailed(string reason)
+    {
+        // Connection failed - return to connection panel
+        _loadingPanel.SetActive(false);
+        _lobbyPanel.SetActive(false);
+        _connectionPanel.SetActive(true);
+        Debug.LogWarning($"[LobbyUI] Connection failed: {reason}");
+    }
+
     private void OnLeftLobby()
     {
-         Debug.Log("[LobbyUI] Left Lobby - Returning to Menu");
         // Reset UI to Connection Panel
-         _lobbyPanel.SetActive(false);
-         _loadingPanel.SetActive(false);
-         if(_browserPanel != null) _browserPanel.SetActive(false);
-         
-         _connectionPanel.SetActive(true);
-         
-         UnsubscribeFromLobbyEvents();
-         _isReady = false;
-         _lastPlayerCount = -1;
+        _lobbyPanel.SetActive(false);
+        _loadingPanel.SetActive(false);
+        if (_browserPanel != null) _browserPanel.SetActive(false);
+
+        _connectionPanel.SetActive(true);
+
+        UnsubscribeFromLobbyEvents();
+        _isReady = false;
+        _lastPlayerCount = -1;
     }
 
     private void LogMissingLobbyManager()
     {
-         var manager = FindFirstObjectByType<LobbyManager>();
+        var manager = FindFirstObjectByType<LobbyManager>();
         if (manager != null)
             Debug.LogError($"LobbyManager.Singleton is null, BUT a LobbyManager component WAS FOUND on GameObject '{manager.name}'. This means Awake() hasn't run yet or failed.");
         else
@@ -264,7 +288,7 @@ public class LobbyUI : MonoBehaviour
 
         LobbyManager.Singleton.ConnectedPlayers.OnListChanged += OnPlayerListChanged;
         LobbyManager.Singleton.CurrentLobbyState.OnValueChanged += OnLobbyStateChanged;
-        
+
         // Initial Refresh
         UpdatePlayerList();
         UpdateLobbyState(LobbyState.Offline, LobbyManager.Singleton.CurrentLobbyState.Value);
@@ -302,12 +326,12 @@ public class LobbyUI : MonoBehaviour
         // Only update countdown or specific things that need per-frame update
         if (LobbyManager.Singleton != null && LobbyManager.Singleton.CurrentLobbyState.Value == LobbyState.Countdown)
         {
-             float timeRemaining = LobbyManager.Singleton.CountdownTimer.Value;
-             _countdownText.text = $"Démarrage dans {Mathf.CeilToInt(timeRemaining)}s";
-             
-             // Simple Pulse Animation based on second tick
-             float scale = 1f + Mathf.PingPong(Time.time * 2f, 0.2f);
-             _countdownText.transform.localScale = Vector3.one * scale;
+            float timeRemaining = LobbyManager.Singleton.CountdownTimer.Value;
+            _countdownText.text = $"Démarrage dans {Mathf.CeilToInt(timeRemaining)}s";
+
+            // Simple Pulse Animation based on second tick
+            float scale = 1f + Mathf.PingPong(Time.time * 2f, 0.2f);
+            _countdownText.transform.localScale = Vector3.one * scale;
         }
     }
 
@@ -336,6 +360,8 @@ public class LobbyUI : MonoBehaviour
 
     private void OnPlayerListChanged(NetworkListEvent<PlayerData> changeEvent)
     {
+        // Safety: don't update if we're being destroyed
+        if (this == null || _playerListContainer == null) return;
         UpdatePlayerList();
     }
 
@@ -346,10 +372,20 @@ public class LobbyUI : MonoBehaviour
         var players = LobbyManager.Singleton.ConnectedPlayers;
         if (players == null) return;
 
-        // Clean up existing rows
+        // Safety check
+        if (_playerListContainer == null) return;
+
+        // Clean up existing rows - collect first to avoid foreach-while-destroying errors
+        var childrenToDestroy = new List<GameObject>();
         foreach (Transform child in _playerListContainer)
         {
-            Destroy(child.gameObject);
+            if (child != null)
+                childrenToDestroy.Add(child.gameObject);
+        }
+        foreach (var child in childrenToDestroy)
+        {
+            if (child != null)
+                Destroy(child);
         }
 
         // Rebuild list - relies on VerticalLayoutGroup on _playerListContainer
