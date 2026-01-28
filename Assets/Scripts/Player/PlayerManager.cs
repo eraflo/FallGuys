@@ -13,46 +13,72 @@ public class PlayerManager : NetworkBehaviour
             return;
         }
         Singleton = this;
+        DontDestroyOnLoad(this);
     }
 
-    public GameObject playerPrefab;     // Prefab du joueur
-    public Transform[] spawnPoints;      // Points de spawn
+    public GameObject playerPrefab;     // Prefab of player
 
-    [ServerRpc(RequireOwnership = false)]
-    public void StartGameServerRpc()
-    {
-        if (!IsServer) return;
-        SpawnPlayers();
-    }
-
-    [ContextMenu("Spawn Players Now")] // Allows triggering from Inspector for testing
-    public void SpawnPlayers()
+    /// <summary>
+    /// Spawns all connected players at the specified spawn points.
+    /// </summary>
+    /// <param name="points">The spawn points to use.</param>
+    public void SpawnPlayers(Transform[] points)
     {
         if (!IsServer) return;
 
-        Debug.Log("[PlayerManager] Spawning all connected players...");
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsIds)
+        if (points == null || points.Length == 0)
         {
-            SpawnPlayer(client);
+            Debug.LogError("[PlayerManager] Cannot spawn players: No spawn points provided!");
+            return;
+        }
+
+        var clientIds = NetworkManager.Singleton.ConnectedClientsIds;
+        Vector3[] positions = new Vector3[clientIds.Count];
+        Quaternion[] rotations = new Quaternion[clientIds.Count];
+
+        int i = 0;
+        foreach (var clientId in clientIds)
+        {
+            int index = (int)(clientId % (ulong)points.Length);
+            positions[i] = points[index].position;
+            rotations[i] = points[index].rotation;
+            i++;
+        }
+
+        SpawnPlayers(positions, rotations);
+    }
+
+    /// <summary>
+    /// Spawns all connected players at the specified positions and rotations.
+    /// This is the core spawning logic.
+    /// </summary>
+    public void SpawnPlayers(Vector3[] positions, Quaternion[] rotations)
+    {
+        if (!IsServer) return;
+
+        var clientIds = NetworkManager.Singleton.ConnectedClientsIds;
+        if (positions.Length < clientIds.Count)
+        {
+            Debug.LogError("[PlayerManager] Not enough positions provided for all connected players!");
+            return;
+        }
+
+        Debug.Log($"[PlayerManager] Spawning {clientIds.Count} players...");
+
+        int i = 0;
+        foreach (var clientId in clientIds)
+        {
+            SpawnPlayer(clientId, positions[i], rotations[i]);
+            i++;
         }
     }
 
-    private void SpawnPlayer(ulong clientId)
+    private void SpawnPlayer(ulong clientId, Vector3 position, Quaternion rotation)
     {
-        int index = (int)(clientId % (ulong)spawnPoints.Length);
-        GameObject playerInstance = Instantiate(playerPrefab, spawnPoints[index].position, Quaternion.identity);
+        GameObject playerInstance = Instantiate(playerPrefab, position, rotation);
         NetworkObject networkObject = playerInstance.GetComponent<NetworkObject>();
         networkObject.SpawnWithOwnership(clientId);
-    }
-
-    // Spawn tous les players (historique/manuel)
-    [ServerRpc]
-    public void SpawnAllServerRpc()
-    {
-        foreach (Transform point in spawnPoints)
-        {
-            GameObject playerInstance = Instantiate(playerPrefab, point.position, Quaternion.identity);
-            playerInstance.GetComponent<NetworkObject>().Spawn();
-        }
+        
+        Debug.Log($"[PlayerManager] Spawned player {clientId} at {position}");
     }
 }

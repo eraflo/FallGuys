@@ -1,5 +1,6 @@
 using Eraflo.Common.AreaSystem;
 using Eraflo.Common.ObjectSystem;
+using Eraflo.Common.Player;
 using FallGuys.StateMachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -25,24 +26,6 @@ namespace FallGuys.AreaSystem
                     blackboard.Set("RaceStarted", true);
                     Debug.Log("[Race] START AREA: RACE STARTED!");
                 }
-            }
-        }
-
-        public override void OnStart(BaseObject owner, Blackboard blackboard)
-        {
-            base.OnStart(owner, blackboard);
-
-            if (!NetworkManager.Singleton.IsServer) return;
-
-            // When the level is loaded and the Start Zone is initialized, spawn the players!
-            if (PlayerManager.Singleton != null)
-            {
-                Debug.Log("[Race] START AREA: Level loaded, triggering player spawn.");
-                PlayerManager.Singleton.SpawnPlayers();
-            }
-            else
-            {
-                Debug.LogError("[Race] START AREA: PlayerManager.Singleton not found! Cannot spawn players.");
             }
         }
 

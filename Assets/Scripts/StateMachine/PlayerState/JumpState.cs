@@ -11,11 +11,28 @@ public class JumpState : StateBaseSO
     [SerializeField] private float jumpHeight = 2.0f;
     [SerializeField] private float fallMultiplier = 2.5f;
     [SerializeField] private float lowJumpMultiplier = 2.0f;
-    [SerializeField] private LayerMask groundLayer = ~0; // Default to all
 
     [Header("Air Control")]
     [SerializeField] private float airControlAcceleration = 20f;
     [SerializeField] private float maxAirSpeed = 6f;
+
+    public override void OnClientEnter(Blackboard bb, CancellationToken ct)
+    {
+        Animator anim = bb.GetOwnerObject().GetComponentInChildren<Animator>();
+        if (anim != null)
+        {
+            // --- AGGRESSIVE ANIMATION TRIGGER ---
+            // Instead of relying purely on parameters (which might flicker due to network sync),
+            // we force the animator into the Jump state immediately.
+            anim.CrossFadeInFixedTime("Jump", 0.1f);
+
+            // Still set parameters for state-consistency
+            anim.SetBool("Grounded", false);
+            anim.SetFloat("VerticalVelocity", 5f);
+
+            bb.Set("ClientJumpStartTime", Time.time);
+        }
+    }
 
     public override void OnServerEnter(Blackboard bb, CancellationToken ct)
     {
@@ -82,15 +99,18 @@ public class JumpState : StateBaseSO
         Animator anim = bb.GetOwnerObject().GetComponentInChildren<Animator>();
         if (anim == null) return;
 
-        Rigidbody rb = bb.GetOwner<Rigidbody>();
-        float yVel = rb != null ? rb.velocity.y : 0f;
-
         float speed = bb.Get<float>("LocalMoveSpeed");
+        float verticalVelocity = bb.Get<float>("VerticalVelocity");
 
-        bool isGrounded = bb.Get<bool>("IsGroundedSync");
+        // --- ROBUST ANIMATION SYNC ---
+        anim.SetBool("Grounded", false);
 
-        anim.SetBool("Grounded", isGrounded);
-        anim.SetFloat("VerticalVelocity", yVel);
+        // Keep a fake positive velocity for a short while on the client 
+        // to prevent immediate skipping to the Falling state in the animator.
+        float elapsed = Time.time - bb.Get<float>("ClientJumpStartTime");
+        if (elapsed < 0.3f && verticalVelocity < 1f) verticalVelocity = 5f;
+
+        anim.SetFloat("VerticalVelocity", verticalVelocity);
         anim.SetFloat("Speed", speed, 0.1f, Time.deltaTime);
     }
 }

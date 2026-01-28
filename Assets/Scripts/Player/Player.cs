@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using FallGuys.StateMachine;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class Player : NetworkBehaviour
 {
@@ -35,6 +34,7 @@ public class Player : NetworkBehaviour
 
     // Sync move speed for animations
     private NetworkVariable<float> networkMoveSpeed = new NetworkVariable<float>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<float> networkVerticalVelocity = new NetworkVariable<float>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<bool> networkIsGrounded = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public override void OnNetworkSpawn()
@@ -78,6 +78,9 @@ public class Player : NetworkBehaviour
         {
             // In Fall Guys, you definitely see your body.
             if (playerRenderer != null) playerRenderer.enabled = true;
+            _inputs.Activate();
+            _inputs.CamLock = true;
+            if (PlayerCamera != null) PlayerCamera.enabled = true;
         }
         else
         {
@@ -144,6 +147,10 @@ public class Player : NetworkBehaviour
 
             // Update sync variables for clients
             networkMoveSpeed.Value = _serverMoveDirection.magnitude;
+
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null) networkVerticalVelocity.Value = rb.velocity.y;
+
             // ROBUST CENTRALIZED GROUND CHECK
             Vector3 rayStart = transform.position + Vector3.up * groundCheckOffset;
             bool isGrounded = Physics.Raycast(rayStart, Vector3.down, groundCheckDistance + groundCheckOffset, groundLayer, QueryTriggerInteraction.Ignore);
@@ -151,6 +158,8 @@ public class Player : NetworkBehaviour
             // Visual feedback in Editor
             Debug.DrawRay(rayStart, Vector3.down * (groundCheckDistance + groundCheckOffset), isGrounded ? Color.green : Color.red);
             networkIsGrounded.Value = isGrounded;
+            networkStateMachine.Blackboard.Set("IsGrounded", isGrounded);
+            networkStateMachine.Blackboard.Set("VerticalVelocity", networkVerticalVelocity.Value);
 
             if (!IsOwner) ServerLook(_serverLookInput, _serverCameraYaw);
             else { networkPitch.Value = _pitch; networkCameraYaw.Value = _yaw; }
@@ -164,9 +173,18 @@ public class Player : NetworkBehaviour
             // Owner uses local input for zero-latency animations, others use synced speed
             float localSpeed = IsOwner ? _inputs.MoveDirection.magnitude : networkMoveSpeed.Value;
 
+            // Velocity handling: Owner can use local rb velocity, others use synced velocity
+            float verticalVel = networkVerticalVelocity.Value;
+            if (IsOwner)
+            {
+                Rigidbody rbLocal = GetComponent<Rigidbody>();
+                if (rbLocal != null) verticalVel = rbLocal.velocity.y;
+            }
+
             networkStateMachine.Blackboard.Set("LocalMoveSpeed", localSpeed);
             networkStateMachine.Blackboard.Set("DirectionMagnitude", networkMoveSpeed.Value);
-            networkStateMachine.Blackboard.Set("IsGroundedSync", networkIsGrounded.Value);
+            networkStateMachine.Blackboard.Set("IsGrounded", networkIsGrounded.Value);
+            networkStateMachine.Blackboard.Set("VerticalVelocity", verticalVel);
         }
     }
 

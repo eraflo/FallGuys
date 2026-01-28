@@ -41,11 +41,14 @@ namespace FallGuys.Core
 
         private void OnSceneEvent(SceneEvent sceneEvent)
         {
+            Debug.Log($"[GameManager] Scene Event: {sceneEvent.SceneEventType} for scene {sceneEvent.SceneName}");
+
             // Trigger level load once the scene is fully loaded on the server
             if (sceneEvent.SceneEventType == SceneEventType.LoadEventCompleted && sceneEvent.SceneName == _gameSceneName)
             {
                 if (IsServer)
                 {
+                    Debug.Log("[GameManager] Scene load completed. Triggering LoadLevel...");
                     LoadLevel();
                 }
             }
@@ -68,10 +71,40 @@ namespace FallGuys.Core
 
         private void LoadLevel()
         {
+            Debug.Log("[GameManager] LoadLevel: Searching for PlayerSpawnZone in scene...");
+
             //Debug.Log($"[GameManager] Loading Level: {(CurrentLevel != null ? CurrentLevel.name : "Default")}");
             // TODO: Implement the actual level instantiation using StockLevel data.
-            // When objects like the StartArea are instantiated, their OnStart hooks 
-            // will trigger the PlayerManager.SpawnPlayers() call.
+
+            // 1. Try to find the PlayerSpawnZone in the scene
+            Eraflo.Common.Player.PlayerSpawnZone spawnZone = Object.FindFirstObjectByType<Eraflo.Common.Player.PlayerSpawnZone>();
+
+            if (spawnZone != null)
+            {
+                Debug.Log("[GameManager] Found PlayerSpawnZone. Triggering player spawn.");
+                var clientIds = NetworkManager.Singleton.ConnectedClientsIds;
+                Vector3[] positions = new Vector3[clientIds.Count];
+                Quaternion[] rotations = new Quaternion[clientIds.Count];
+
+                for (int i = 0; i < clientIds.Count; i++)
+                {
+                    positions[i] = spawnZone.GetRandomPoint();
+                    rotations[i] = spawnZone.transform.rotation;
+                }
+
+                if (PlayerManager.Singleton != null)
+                {
+                    PlayerManager.Singleton.SpawnPlayers(positions, rotations);
+                }
+                else
+                {
+                    Debug.LogError("[GameManager] PlayerManager.Singleton not found!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GameManager] No PlayerSpawnZone found in the loaded scene! Players cannot spawn.");
+            }
         }
 
         public void StartGame(Game game)

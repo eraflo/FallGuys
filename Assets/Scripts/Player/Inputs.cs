@@ -17,39 +17,44 @@ public class Inputs : MonoBehaviour
 
     private void Start()
     {
+        // On startup, we make sure the global actions are enabled.
+        // We do it once here.
+        Activate();
         CamLock = true;
     }
 
     void OnEnable()
     {
+        // Caution: If multiple players exist, they share the same moveActionRef.action object.
+        // We shouldn't Disable() it when one player is destroyed if others still need it.
         Activate();
-    }
-
-    void OnDisable()
-    {
-        Desactivate();
     }
 
     public void Activate()
     {
-        if (moveActionRef != null) moveActionRef.action.Enable();
-        if (jumpActionRef != null) jumpActionRef.action.Enable();
-        if (camLockActionRef != null) camLockActionRef.action.Enable();
-        if (diveActionRef != null) diveActionRef.action.Enable();
+        // Enabling the action is a global state for the asset. 
+        // We only do it to ensure the system is "listening".
+        if (moveActionRef != null && !moveActionRef.action.enabled) moveActionRef.action.Enable();
+        if (jumpActionRef != null && !jumpActionRef.action.enabled) jumpActionRef.action.Enable();
+        if (camLockActionRef != null && !camLockActionRef.action.enabled) camLockActionRef.action.Enable();
+        if (diveActionRef != null && !diveActionRef.action.enabled) diveActionRef.action.Enable();
+
         activated = true;
     }
 
     public void Desactivate()
     {
-        if (moveActionRef != null) moveActionRef.action.Disable();
-        if (jumpActionRef != null) jumpActionRef.action.Disable();
-        if (camLockActionRef != null) camLockActionRef.action.Disable();
-        if (diveActionRef != null) diveActionRef.action.Disable();
         activated = false;
+
+        // Reset values to prevent "stuck" inputs
+        MoveDirection = Vector2.zero;
+        IsJumping = false;
+        IsDiving = false;
     }
 
     private void Update()
     {
+        // Only the "Activated" instance (the Owner) reads values from the global system.
         if (!activated) return;
 
         if (moveActionRef != null)

@@ -53,7 +53,12 @@ public class DiveState : StateBaseSO
 
         // Check if dive phase is over (Timer OR actual Landing)
         float startTime = bb.Get<float>("DiveStartTime");
-        if (Time.time - startTime > diveDuration || isLanding)
+        float elapsed = Time.time - startTime;
+
+        // Allow landing exit only after a short delay to ensure animation/boost have a chance to play
+        bool canLand = elapsed > 0.15f;
+
+        if (elapsed > diveDuration || (canLand && isLanding))
         {
             bb.Set("IsDiveFinished", true);
         }
