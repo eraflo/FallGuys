@@ -57,6 +57,25 @@ namespace FallGuys.Networking
         [SerializeField] private int _maxPlayers = 4; // Maximum number of players allowed in the lobby
         public int MaxPlayers => _maxPlayers;
 
+        // --- Private State ---
+        private bool _wasConnectedAsClient = false;
+        private Coroutine _connectionTimeoutCoroutine;
+        private const float CONNECTION_TIMEOUT = 3f; // Seconds to wait for connection
+
+        // --- Events ---
+        // Event invoked when connection attempt starts (for showing loading UI)
+        public event Action OnConnectionStarted;
+
+        // Event invoked when connection is successfully established
+        public event Action OnConnectionSuccess;
+
+        // Event invoked when connection attempt fails
+        public event Action<string> OnConnectionFailed;
+
+        // Event invoked when lobby is left (disconnected, kicked, or quit)
+        public event Action OnLeftLobby;
+
+
         private void Awake()
         {
             // Initialisation critique AVANT tout check de Singleton pour que Netcode soit content s'il scanne cette instance
@@ -64,20 +83,28 @@ namespace FallGuys.Networking
 
             if (Singleton != null && Singleton != this)
             {
-                Debug.Log($"[LobbyManager] Destroying duplicate instance {gameObject.GetInstanceID()}");
-                // On doit clean la liste qu'on vient de créer pour ne pas fuir sur le doublon !
+                // If the old singleton exists but we're in the Lobby scene, 
+                // it means we returned after a disconnect - destroy the OLD one and use this new clean instance
+                if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Lobby")
+                {
+                    // Destroy the OLD singleton (it has corrupted state)
+                    Destroy(Singleton.gameObject);
+
+                    // This new instance becomes the singleton
+                    Singleton = this;
+                    DontDestroyOnLoad(gameObject);
+                    return;
+                }
+
+                // Normal case: we're in a game scene, destroy THIS duplicate
                 ConnectedPlayers.Dispose();
                 Destroy(gameObject);
                 return;
             }
 
             Singleton = this;
-            Debug.Log($"[LobbyManager] Initialized Singleton {gameObject.GetInstanceID()}");
+            DontDestroyOnLoad(gameObject);
         }
-
-
-
-
 
         public override void OnDestroy()
         {
@@ -99,7 +126,6 @@ namespace FallGuys.Networking
             // Only dispose if it was created and we are destroying the object
             if (ConnectedPlayers != null)
             {
-                Debug.Log($"[LobbyManager] Disposing ConnectedPlayers NetworkList in instance {gameObject.GetInstanceID()}");
                 ConnectedPlayers.OnListChanged -= OnConnectedPlayersChanged;
                 ConnectedPlayers.Dispose();
             }
@@ -107,7 +133,9 @@ namespace FallGuys.Networking
 
         private void Update()
         {
-            if (!IsServer) return; // Only server manages lobby state
+            // NOTE: Client disconnect detection is now handled by ClientDisconnectWatcher (standalone MonoBehaviour)
+            // This Update only handles SERVER lobby state management
+            if (!IsServer) return;
 
             switch (CurrentLobbyState.Value)
             {
@@ -141,13 +169,6 @@ namespace FallGuys.Networking
             }
         }
 
-        // Event invoked when any connection attempt (Host or Client) is started locally
-        public event Action OnConnectionStarted;
-
-        // Event invoked when lobby is left (disconnected, kicked, or quit)
-        public event Action OnLeftLobby;
-
-        // --- Host/Client Connection Methods ---
         // --- Host/Client Connection Methods ---
         public void StartHost(string ip = null, int port = 0)
         {
@@ -207,49 +228,119 @@ namespace FallGuys.Networking
             // Server-side: add host player data
             if (IsServer)
             {
-                AddPlayer(NetworkManager.Singleton.LocalClientId, "HostPlayer"); // Placeholder name
+                AddPlayer(NetworkManager.Singleton.LocalClientId, "HostPlayer");
+                // Host is immediately connected - trigger success event
+                OnConnectionSuccess?.Invoke();
             }
         }
 
         public void StartClient(string ip = null, int port = 0)
         {
-            if (NetworkManager.Singleton == null)
+            try
             {
-                Debug.LogError("NetworkManager.Singleton is null");
-                return;
-            }
-
-            // Notify listeners (UI) that we are starting
-            OnConnectionStarted?.Invoke();
-
-            // Configure Transport if IP/Port provided
-            if (!string.IsNullOrEmpty(ip))
-            {
-                var transport = NetworkManager.Singleton.GetComponent<Unity.Netcode.Transports.UTP.UnityTransport>();
-                if (transport != null)
+                if (NetworkManager.Singleton == null)
                 {
-                    // SMART LOCALHOST: If we are trying to connect to our own public IP, switch to 127.0.0.1
-                    // This fixes "NAT Loopback" issues on many routers/firewalls when testing locally
-                    string localIp = GetLocalIPAddress();
-                    if (ip == localIp)
-                    {
-                        Debug.LogWarning($"[LobbyManager] Detected connection to Local IP ({ip}). Switching to 127.0.0.1 for stability.");
-                        ip = "127.0.0.1";
-                    }
-
-                    // FIX: Use SetConnectionData because ConnectionData is a struct property!
-                    // Modifying transport.ConnectionData.Port directly modifies a copy and does nothing.
-                    transport.SetConnectionData(ip, (ushort)port);
-                    Debug.Log($"Configured Client to connect to {ip}:{port}");
+                    Debug.LogError("NetworkManager.Singleton is null");
+                    OnConnectionFailed?.Invoke("NetworkManager not found");
+                    return;
                 }
+
+                // Configure Transport if IP/Port provided
+                if (!string.IsNullOrEmpty(ip))
+                {
+                    var transport = NetworkManager.Singleton.GetComponent<Unity.Netcode.Transports.UTP.UnityTransport>();
+                    if (transport != null)
+                    {
+                        // SMART LOCALHOST: If we are trying to connect to our own public IP, switch to 127.0.0.1
+                        string localIp = GetLocalIPAddress();
+                        if (ip == localIp)
+                        {
+                            ip = "127.0.0.1";
+                        }
+                        transport.SetConnectionData(ip, (ushort)port);
+                    }
+                }
+
+                // Subscribe to callbacks for connection result
+                NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedForUI;
+                NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectedDuringConnect;
+
+                NetworkManager.Singleton.StartClient();
+
+                // Start timeout - if no connection after X seconds, cancel
+                _connectionTimeoutCoroutine = StartCoroutine(ConnectionTimeoutCoroutine());
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Error starting client: " + e.Message);
+                OnConnectionFailed?.Invoke(e.Message);
+            }
+        }
+
+        private void OnClientConnectedForUI(ulong clientId)
+        {
+            // Only care about our own connection
+            if (NetworkManager.Singleton != null && clientId == NetworkManager.Singleton.LocalClientId)
+            {
+                // Cancel timeout
+                if (_connectionTimeoutCoroutine != null)
+                {
+                    StopCoroutine(_connectionTimeoutCoroutine);
+                    _connectionTimeoutCoroutine = null;
+                }
+
+                // Clean up callbacks
+                NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnectedForUI;
+                NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnectedDuringConnect;
+
+                // Connection successful!
+                OnConnectionSuccess?.Invoke();
+            }
+        }
+
+        private void OnClientDisconnectedDuringConnect(ulong clientId)
+        {
+            if (NetworkManager.Singleton != null && clientId == NetworkManager.Singleton.LocalClientId)
+            {
+                CancelConnectionAttempt();
+            }
+        }
+
+        private void CancelConnectionAttempt()
+        {
+            // Cancel timeout coroutine
+            if (_connectionTimeoutCoroutine != null)
+            {
+                StopCoroutine(_connectionTimeoutCoroutine);
+                _connectionTimeoutCoroutine = null;
             }
 
-            NetworkManager.Singleton.StartClient();
-            // Client-side: player data will be added via HandleClientConnected on server
+            // Clean up callbacks
+            if (NetworkManager.Singleton != null)
+            {
+                NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnectedForUI;
+                NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnectedDuringConnect;
+                NetworkManager.Singleton.Shutdown();
+            }
+
+            OnConnectionFailed?.Invoke("Connection failed");
+        }
+
+        private System.Collections.IEnumerator ConnectionTimeoutCoroutine()
+        {
+            yield return new WaitForSeconds(CONNECTION_TIMEOUT);
+
+            // If we get here, connection timed out
+            if (NetworkManager.Singleton != null && !NetworkManager.Singleton.IsConnectedClient)
+            {
+                CancelConnectionAttempt();
+            }
         }
 
         public void Shutdown()
         {
+            Debug.Log("[LobbyManager] Shutdown called.");
+
             if (LanDiscoveryManager.Singleton != null)
             {
                 LanDiscoveryManager.Singleton.StopBroadcasting();
@@ -260,16 +351,20 @@ namespace FallGuys.Networking
                 NetworkManager.Singleton.Shutdown();
             }
 
-            // Cleanup list manually since we are leaving
-            // If we are Host, the NetworkList will be destroyed when the object is destroyed/despawned
-            // But good to clear local state
-            if (ConnectedPlayers != null && ConnectedPlayers.Count > 0)
-            {
-                // We can't clear a NetworkList if we are not server or if network is down, 
-                // so we just notify UI via OnLeftLobby
-            }
-
+            _wasConnectedAsClient = false;
             OnLeftLobby?.Invoke();
+
+            // Return to lobby scene
+            ReturnToLobbyScene();
+        }
+
+        /// <summary>
+        /// Loads the Lobby scene. Call this when disconnected.
+        /// </summary>
+        private void ReturnToLobbyScene()
+        {
+            Debug.Log($"[LobbyManager] ReturnToLobbyScene called. Singleton={Singleton != null}, this={this != null}");
+            SceneManager.LoadScene("Lobby");
         }
 
         // Helper for finding local IP
@@ -338,8 +433,9 @@ namespace FallGuys.Networking
             {
                 // Client-side, subscribe to state changes
                 CurrentLobbyState.OnValueChanged += OnLobbyStateChanged;
-                // Listen for own disconnection (e.g. kicked by server or server shutdown)
-                NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected_Local;
+                // Mark that we're connected as client for Update polling
+                _wasConnectedAsClient = true;
+                Debug.Log("[LobbyManager] CLIENT: Marked as connected (_wasConnectedAsClient = true)");
             }
 
             ConnectedPlayers.OnListChanged += OnConnectedPlayersChanged;
@@ -360,25 +456,6 @@ namespace FallGuys.Networking
             else
             {
                 CurrentLobbyState.OnValueChanged -= OnLobbyStateChanged;
-                if (NetworkManager.Singleton != null)
-                {
-                    NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected_Local;
-                }
-            }
-
-            // Do NOT Dispose the list here if the Manager persists!
-            // CleanupNetworkList(); 
-        }
-
-        // Client-side callback when WE get disconnected
-        private void OnClientDisconnected_Local(ulong clientId)
-        {
-            // If the disconnected ID is the Server's ID (usually 0), or if it's US (LocalClientId)
-            if (clientId == NetworkManager.ServerClientId || clientId == NetworkManager.Singleton.LocalClientId)
-            {
-                Debug.LogWarning("[LobbyManager] Disconnected from Server (or Server stopped). returning to Menu.");
-                // Trigger UI cleanup
-                Shutdown();
             }
         }
 
@@ -485,7 +562,6 @@ namespace FallGuys.Networking
         {
             // This method should be implemented by a separate UI manager or directly here
             // to update the lobby UI elements (player list, countdown, ready status)
-            Debug.Log($"Current State: {CurrentLobbyState.Value}, Players: {ConnectedPlayers.Count}");
             foreach (var player in ConnectedPlayers)
             {
                 Debug.Log($" - {player.PlayerName} (ID: {player.ClientId}) Ready: {player.IsReady}");
