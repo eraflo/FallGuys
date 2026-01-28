@@ -46,9 +46,6 @@ public class MoveState : StateBaseSO
             // 3. Smooth Rotation to face direction
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             playerGameObject.transform.rotation = Quaternion.Slerp(playerGameObject.transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-
-            // Clear any physics-based rotation to avoid interference
-            rb.angularVelocity = Vector3.zero;
         }
         else
         {
@@ -56,6 +53,9 @@ public class MoveState : StateBaseSO
             Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
             rb.velocity -= horizontalVel * friction * Time.deltaTime;
         }
+
+        // Clear any physics-based rotation to avoid interference
+        rb.angularVelocity = Vector3.zero;
     }
 
     public override void OnClientEnter(Blackboard bb, System.Threading.CancellationToken ct)
