@@ -14,18 +14,15 @@ namespace FallGuys.Traps
         public override void OnStart(BaseObject owner, Blackboard blackboard)
         {
             // Automatically link the detector events to virtual methods for subclasses
-            if (owner is TrapDetector detector)
-            {
-                // Trigger events (Used by zones like Blowers or Launcher detection)
-                detector.onTriggerEnter += (other) => OnTrapTriggerEnter(owner, blackboard, other);
-                detector.onTriggerStay += (other) => OnTrapTriggerStay(owner, blackboard, other);
-                detector.onTriggerExit += (other) => OnTrapTriggerExit(owner, blackboard, other);
+            // Trigger events (Used by zones like Blowers or Launcher detection)
+            owner.onTriggerEnter += (other) => OnTrapTriggerEnter(owner, blackboard, other);
+            owner.onTriggerStay += (other) => OnTrapTriggerStay(owner, blackboard, other);
+            owner.onTriggerExit += (other) => OnTrapTriggerExit(owner, blackboard, other);
 
-                // Collision events (Used by physical impacts like Bumpers)
-                detector.onCollisionEnter += (collision) => OnAreaCollided(owner, blackboard, collision);
-                detector.onCollisionStay += (collision) => OnAreaCollisionStay(owner, blackboard, collision);
-                detector.onCollisionExit += (collision) => OnAreaCollisionExit(owner, blackboard, collision);
-            }
+            // Collision events (Used by physical impacts like Bumpers)
+            owner.onCollisionEnter += (collision) => OnAreaCollided(owner, blackboard, collision);
+            owner.onCollisionStay += (collision) => OnAreaCollisionStay(owner, blackboard, collision);
+            owner.onCollisionExit += (collision) => OnAreaCollisionExit(owner, blackboard, collision);
         }
 
         // Virtual hooks for subclasses to implement their specific trap logic

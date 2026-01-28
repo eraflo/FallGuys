@@ -10,9 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4d78e03f3c5c9f4a8df0904773675cb, type: 3}
-  m_Name: LauncherConfig
+  m_Name: MovingPlatformConfig
   m_EditorClassIdentifier: 
   states:
-  - {fileID: 11400000, guid: 73b18dad12c2565438543251f157236b, type: 2}
-  - {fileID: 11400000, guid: f24a0c99f28e11a4c831ba1cfa34caf0, type: 2}
-  - {fileID: 11400000, guid: cccd7877e14f77e4daf83ebd9404e7b3, type: 2}
+  - {fileID: 11400000, guid: 8b459eb98f1999d498f5a7daed51d143, type: 2}
+  - {fileID: 11400000, guid: 0547cb07f24d26f47bbbdc047f363770, type: 2}
+  - {fileID: 11400000, guid: 4393813dd82e00e4b840b20c0c16b8f9, type: 2}
+  - {fileID: 11400000, guid: a8b7d9147030a734c94c9c5d7cc63538, type: 2}

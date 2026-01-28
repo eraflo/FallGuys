@@ -29,3 +29,7 @@ MonoBehaviour:
     Logic: {fileID: 11400000, guid: 9fe1a4e2f3af45c4491dacea5a910620, type: 2}
   - Key: Player
     Logic: {fileID: 11400000, guid: 235c450d75d0bb347808ea4a8dd83b3b, type: 2}
+  - Key: MovingPlatform
+    Logic: {fileID: 11400000, guid: 3fcdee40909b2364087956e0fa72e8b3, type: 2}
+  - Key: Jumper
+    Logic: {fileID: 11400000, guid: 5f79ce1b79cfed049a1b2ab472ebe925, type: 2}
