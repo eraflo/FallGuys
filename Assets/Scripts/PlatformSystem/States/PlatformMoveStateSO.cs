@@ -34,11 +34,17 @@ namespace FallGuys.PlatformSystem.States
 
             float startTime = bb.Get<float>("_moveStartTime");
             float elapsed = Time.time - startTime;
-            float t = Mathf.Clamp01(elapsed / config.TravelTime);
+
+            // Read overridden values from Blackboard
+            float travelTime = bb.Get<float>("_travelTime", config.TravelTime);
+            Vector3 startOffset = bb.Get<Vector3>("_startOffset", config.StartOffset);
+            Vector3 endOffset = bb.Get<Vector3>("_endOffset", config.EndOffset);
+
+            float t = Mathf.Clamp01(elapsed / travelTime);
 
             Vector3 initialPos = bb.Get<Vector3>("_initialPos");
-            Vector3 startPos = initialPos + config.StartOffset;
-            Vector3 endPos = initialPos + config.EndOffset;
+            Vector3 startPos = initialPos + startOffset;
+            Vector3 endPos = initialPos + endOffset;
 
             // Move from A to B or B to A
             owner.transform.position = _movingToEnd

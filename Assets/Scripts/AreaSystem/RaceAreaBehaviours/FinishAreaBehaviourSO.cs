@@ -1,5 +1,6 @@
 using Eraflo.Common.AreaSystem;
 using Eraflo.Common.ObjectSystem;
+using FallGuys.Core;
 using FallGuys.StateMachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -12,7 +13,9 @@ namespace FallGuys.AreaSystem
         public override void OnUpdate(BaseObject owner, Blackboard blackboard)
         {
             if (!NetworkManager.Singleton.IsServer) return;
+            if (GameManager.Instance == null) return;
 
+            // End-race countdown (starts when first player finishes)
             if (blackboard.Get<bool>("FinishTimerStarted", false))
             {
                 float timer = blackboard.Get<float>("FinishTimer", 0f);
@@ -22,8 +25,8 @@ namespace FallGuys.AreaSystem
                 if (timer <= 0)
                 {
                     blackboard.Set("FinishTimerStarted", false);
-                    blackboard.Set("RaceEnded", true);
                     Debug.Log("[Race] FINISH AREA: RACE ENDED!");
+                    GameManager.Instance.EndGame();
                 }
             }
         }
@@ -31,23 +34,38 @@ namespace FallGuys.AreaSystem
         protected override void OnAreaEnter(BaseObject owner, Blackboard blackboard, Collider other)
         {
             if (!NetworkManager.Singleton.IsServer) return;
-            if (blackboard.Get<bool>("RaceEnded", false)) return;
+            if (GameManager.Instance == null) return;
+            if (GameManager.Instance.RaceEnded) return;
 
-            int count = blackboard.Get<int>("FinishedCount", 0);
-            count++;
-            blackboard.Set("FinishedCount", count);
+            // Detect player using Player script
+            var player = other.GetComponentInParent<Player>();
+            if (player == null) return;
 
-            if (count == 1)
+            ulong clientId = player.OwnerClientId;
+
+            // Check if this player already finished
+            if (GameManager.Instance.CurrentLeaderboard.HasFinished(clientId)) return;
+
+            // Record finish using GameManager's global RaceTimer
+            float raceTime = GameManager.Instance.RaceTimer;
+            string playerName = $"Player_{clientId}";
+
+            GameManager.Instance.RecordFinish(clientId, playerName, raceTime);
+
+            int finishedCount = GameManager.Instance.CurrentLeaderboard.FinishedCount;
+
+            // Start end-race timer when first player finishes
+            if (finishedCount == 1)
             {
-                if (owner.RuntimeData.Config is FinishAreaSO finishSO)
-                {
-                    blackboard.Set("FinishTimer", finishSO.EndRaceDelay);
-                    blackboard.Set("FinishTimerStarted", true);
-                    Debug.Log("[Race] FINISH AREA: First player finished! Timer started.");
-                }
+                // IMPORTANT: Read from Blackboard to get potentially overridden values
+                float delay = blackboard.Get<float>("_endRaceDelay", 10f);
+
+                blackboard.Set("FinishTimer", delay);
+                blackboard.Set("FinishTimerStarted", true);
+                Debug.Log($"[Race] FINISH AREA: First player finished! End-race timer started ({delay}s).");
             }
 
-            Debug.Log($"[Race] FINISH AREA: Player finished! Rank: {count}");
+            Debug.Log($"[Race] FINISH AREA: {playerName} finished! Rank: {finishedCount}, Time: {raceTime:F2}s");
         }
 
         protected override void OnAreaStay(BaseObject owner, Blackboard blackboard, Collider other) { }

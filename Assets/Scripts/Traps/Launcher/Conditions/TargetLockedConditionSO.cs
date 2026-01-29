@@ -27,11 +27,14 @@ namespace FallGuys.Traps.Launcher.Conditions
             LauncherTrapSO config = baseObj.RuntimeData.Config as LauncherTrapSO;
             if (config == null) return false;
 
+            // Read overridden values from Blackboard
+            float detectionRange = bb.Get<float>("_detectionRange", config.DetectionRange);
+
             Vector3 toTarget = (target.position - owner.transform.position);
 
             // 1. DISTANCE VALIDATION
             // Ensure target is still within shooting distance (with 10% safety buffer)
-            if (toTarget.magnitude > config.DetectionRange * 1.1f) return false;
+            if (toTarget.magnitude > detectionRange * 1.1f) return false;
 
             // 2. ANGLE VALIDATION
             // Calculate how well we are pointing at the player.

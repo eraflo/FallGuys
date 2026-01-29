@@ -118,6 +118,9 @@ namespace FallGuys.ObjectSystem
 
                 targetBlackboard.Set(paramName, finalValue);
             }
+
+            // Sync colliders again to apply any overrides affecting size/radius
+            _baseObject.SyncAllColliders();
         }
     }
 }

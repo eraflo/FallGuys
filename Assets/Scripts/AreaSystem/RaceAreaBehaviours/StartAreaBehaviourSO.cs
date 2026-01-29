@@ -1,6 +1,7 @@
 using Eraflo.Common.AreaSystem;
 using Eraflo.Common.ObjectSystem;
 using Eraflo.Common.Player;
+using FallGuys.Core;
 using FallGuys.StateMachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace FallGuys.AreaSystem
         {
             if (!NetworkManager.Singleton.IsServer) return;
 
+            // Countdown phase (starts when first player enters)
             if (blackboard.Get<bool>("IsCountingDown", false))
             {
                 float timer = blackboard.Get<float>("Timer", 0f);
@@ -25,6 +27,12 @@ namespace FallGuys.AreaSystem
                     blackboard.Set("IsCountingDown", false);
                     blackboard.Set("RaceStarted", true);
                     Debug.Log("[Race] START AREA: RACE STARTED!");
+
+                    // Signal GameManager to start the race
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.StartRace();
+                    }
                 }
             }
         }
@@ -33,14 +41,19 @@ namespace FallGuys.AreaSystem
         {
             if (!NetworkManager.Singleton.IsServer) return;
 
-            if (!blackboard.Get<bool>("IsCountingDown", false) && !blackboard.Get<bool>("RaceStarted", false))
+            // Detect player using Player script
+            var player = other.GetComponentInParent<Player>();
+            if (player == null) return;
+
+            // Start countdown if not already started
+            if (!blackboard.Get<bool>("IsCountingDown", false) && !GameManager.Instance.RaceStarted)
             {
-                if (owner.RuntimeData.Config is StartAreaSO startSO)
-                {
-                    blackboard.Set("Timer", startSO.CountdownDuration);
-                    blackboard.Set("IsCountingDown", true);
-                    Debug.Log($"[Race] START AREA: Countdown started ({startSO.CountdownDuration}s)");
-                }
+                // IMPORTANT: Read from Blackboard to get potentially overridden values
+                float duration = blackboard.Get<float>("_countdownDuration", 3f);
+
+                blackboard.Set("Timer", duration);
+                blackboard.Set("IsCountingDown", true);
+                Debug.Log($"[Race] START AREA: Countdown started ({duration}s)");
             }
         }
 

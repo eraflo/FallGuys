@@ -1,4 +1,4 @@
-using UnityEngine;
+using Eraflo.Common.LevelSystem;
 
 namespace FallGuys.Core
 {
@@ -7,7 +7,6 @@ namespace FallGuys.Core
     {
         public string GameName;
         public string LevelName;
-        // TODO: Access to StockLevel once available
-        // public StockLevel CurrentLevel;
+        public Level CurrentLevel;
     }
 }

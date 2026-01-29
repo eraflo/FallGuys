@@ -23,13 +23,16 @@ namespace FallGuys.PlatformSystem
 
             if (IsPlayer(other.gameObject, out Rigidbody rb))
             {
-                // Reset Y velocity for a consistent jump height regardless of how the player landed
+                // Read overridden JumpStrength from Blackboard
+                float jumpStrength = blackboard.Get<float>("_jumpStrength", config.JumpStrength);
+
+                // Reset Y velocity for a consistent jump height
                 Vector3 vel = rb.velocity;
                 vel.y = 0;
                 rb.velocity = vel;
 
                 // Apply vertical impulse
-                rb.AddForce(owner.transform.up * config.JumpStrength, ForceMode.Impulse);
+                rb.AddForce(owner.transform.up * jumpStrength, ForceMode.Impulse);
 
                 Debug.Log($"[Jumper] Sever applied jump impulse to {other.gameObject.name}");
             }

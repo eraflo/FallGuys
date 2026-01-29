@@ -26,6 +26,10 @@ namespace FallGuys.Traps.Launcher.States
             BaseObject baseObj = owner.GetComponent<BaseObject>();
             LauncherTrapSO config = baseObj.RuntimeData.Config as LauncherTrapSO;
 
+            // Read overridden values from Blackboard
+            float rotationSpeed = bb.Get<float>("_rotationSpeed", config.RotationSpeed);
+            float fireRate = bb.Get<float>("_fireRate", config.FireRate);
+
             // TRACKING: Continue updating target status while firing
             Transform target = FindBestTarget(owner, config, bb);
             bb.Set("Target", target);
@@ -37,12 +41,12 @@ namespace FallGuys.Traps.Launcher.States
             toTarget.y = 0;
             if (toTarget.sqrMagnitude > 0.01f)
             {
-                owner.transform.rotation = Quaternion.RotateTowards(owner.transform.rotation, Quaternion.LookRotation(toTarget), config.RotationSpeed * Time.deltaTime);
+                owner.transform.rotation = Quaternion.RotateTowards(owner.transform.rotation, Quaternion.LookRotation(toTarget), rotationSpeed * Time.deltaTime);
             }
 
             // FIRING LOGIC
             float lastFireTime = bb.Get<float>(LAST_FIRE_TIME_KEY);
-            if (Time.time >= lastFireTime + (1f / config.FireRate))
+            if (Time.time >= lastFireTime + (1f / fireRate))
             {
                 Fire(owner, config);
                 bb.Set(LAST_FIRE_TIME_KEY, Time.time);
@@ -51,8 +55,12 @@ namespace FallGuys.Traps.Launcher.States
 
         private Transform FindBestTarget(GameObject owner, LauncherTrapSO config, Blackboard bb)
         {
+            // Read overridden values from Blackboard
+            float detectionRange = bb.Get<float>("_detectionRange", config.DetectionRange);
+            float searchAngleRange = bb.Get<float>("_searchAngleRange", config.SearchAngleRange);
+
             // Find all colliders within detection range
-            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, config.DetectionRange, config.ImpactLayer);
+            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, detectionRange, config.ImpactLayer);
             Transform bestTarget = null;
             float minDistance = float.MaxValue;
 
@@ -77,7 +85,7 @@ namespace FallGuys.Traps.Launcher.States
                 toTarget.y = 0;
                 float angle = Vector3.Angle(initialForward, toTarget);
 
-                if (angle <= config.SearchAngleRange)
+                if (angle <= searchAngleRange)
                 {
                     if (dist < minDistance)
                     {

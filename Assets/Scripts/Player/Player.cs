@@ -37,6 +37,16 @@ public class Player : NetworkBehaviour
     private NetworkVariable<float> networkVerticalVelocity = new NetworkVariable<float>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<bool> networkIsGrounded = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    /// <summary>
+    /// Last checkpoint position for respawn (server-authoritative).
+    /// </summary>
+    public Vector3 LastCheckpointPosition { get; set; } = Vector3.zero;
+
+    /// <summary>
+    /// Index of the last checkpoint reached (higher = further in race).
+    /// </summary>
+    public int LastCheckpointIndex { get; set; } = -1;
+
     public override void OnNetworkSpawn()
     {
         _inputs = GetComponent<Inputs>();
@@ -44,6 +54,12 @@ public class Player : NetworkBehaviour
         networkStateMachine.Blackboard.Set("PlayerGameObject", gameObject);
 
         SetupPlayer();
+
+        if (IsServer)
+        {
+            LastCheckpointPosition = transform.position;
+            LastCheckpointIndex = -1; // -1 means starting point/no checkpoint hit yet
+        }
 
         if (IsOwner)
         {

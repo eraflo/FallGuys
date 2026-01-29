@@ -35,9 +35,11 @@ namespace FallGuys.Traps.Blower
             // Apply wind if target is valid
             if (IsValidTarget(other.gameObject, config, out Rigidbody rb))
             {
+                // Read overridden WindStrength from Blackboard
+                float windStrength = blackboard.Get<float>("_windStrength", config.WindStrength);
+
                 // Apply force in the forward direction of the trap.
-                // Use ForceMode.Acceleration to ensure it's independent of the player's mass (cleaner feel).
-                rb.AddForce(owner.transform.forward * config.WindStrength, ForceMode.Acceleration);
+                rb.AddForce(owner.transform.forward * windStrength, ForceMode.Acceleration);
             }
         }
     }

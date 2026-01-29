@@ -20,13 +20,15 @@ namespace FallGuys.Traps.Launcher.States
             LauncherTrapSO config = baseObj.RuntimeData.Config as LauncherTrapSO;
             if (config == null) return;
 
+            // Read overridden values from Blackboard
+            float rotationSpeed = bb.Get<float>("_rotationSpeed", config.RotationSpeed);
+            float searchAngleRange = bb.Get<float>("_searchAngleRange", config.SearchAngleRange);
+
             // 1. SPATIAL SCANNING (Server Only)
-            // Actively look for players in the 'ImpactLayer' within Range and Angle.
             Transform target = FindBestTarget(owner, config, bb);
             bb.Set("Target", target); // Store in blackboard for conditions/transitions
 
             // 2. VISUAL SWEEP
-            // If no target is locked, perform a ping-pong rotation sweep to show the launcher is "searching".
             if (target == null)
             {
                 // Ensure we have a reference rotation to sweep around
@@ -38,7 +40,7 @@ namespace FallGuys.Traps.Launcher.States
                 Quaternion initialRot = bb.Get<Quaternion>("_initialRotation");
 
                 // Deterministic Sin-based sweep: SearchAngleRange degrees in each direction
-                float angle = Mathf.Sin(Time.time * (config.RotationSpeed / 45f)) * config.SearchAngleRange;
+                float angle = Mathf.Sin(Time.time * (rotationSpeed / 45f)) * searchAngleRange;
                 owner.transform.rotation = initialRot * Quaternion.Euler(0, angle, 0);
             }
         }
@@ -49,8 +51,12 @@ namespace FallGuys.Traps.Launcher.States
         /// </summary>
         private Transform FindBestTarget(GameObject owner, LauncherTrapSO config, Blackboard bb)
         {
+            // Read overridden values from Blackboard
+            float detectionRange = bb.Get<float>("_detectionRange", config.DetectionRange);
+            float searchAngleRange = bb.Get<float>("_searchAngleRange", config.SearchAngleRange);
+
             // Query all possible colliders on the designated layer
-            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, config.DetectionRange, config.ImpactLayer);
+            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, detectionRange, config.ImpactLayer);
 
             Transform bestTarget = null;
             float minDistance = float.MaxValue;
@@ -74,7 +80,7 @@ namespace FallGuys.Traps.Launcher.States
                 toTarget.y = 0;
                 float angle = Vector3.Angle(initialForward, toTarget);
 
-                if (angle <= config.SearchAngleRange)
+                if (angle <= searchAngleRange)
                 {
                     // Target the closest valid player
                     if (dist < minDistance)

@@ -26,15 +26,17 @@ namespace FallGuys.Traps.Bumper
                 // Calculate push direction: From the center of the trap towards the point of impact.
                 Vector3 pushDir = collision.contacts[0].point - owner.transform.position;
 
-                // Keep it horizontal (Y=0) to prevent players from flying upwards unexpectedly
-                // like a pinball bumper.
+                // Keep it horizontal (Y=0)
                 pushDir.y = 0;
                 pushDir.Normalize();
 
-                // Apply the force as an Impulse (instantaneous velocity change)
-                rb.AddForce(pushDir * config.Strength, ForceMode.Impulse);
+                // Read overridden Strength from Blackboard
+                float strength = blackboard.Get<float>("_strength", config.Strength);
 
-                Debug.Log($"[Bumper] Server applied bump to {collision.gameObject.name} (Strength: {config.Strength})");
+                // Apply the force as an Impulse
+                rb.AddForce(pushDir * strength, ForceMode.Impulse);
+
+                Debug.Log($"[Bumper] Server applied bump to {collision.gameObject.name} (Strength: {strength})");
             }
         }
     }

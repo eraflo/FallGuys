@@ -1,3 +1,4 @@
+using Eraflo.Common.LevelSystem;
 using FallGuys.Networking;
 using Unity.Netcode;
 using UnityEngine;
@@ -21,7 +22,35 @@ namespace FallGuys.Core
 
         [Header("Settings")]
         [SerializeField] private string _gameSceneName = "GameScene";
-        //public StockLevel CurrentLevel;
+        [SerializeField] private string _lobbySceneName = "LobbyScene";
+
+        [Header("References")]
+        [SerializeField] private LevelLoader _levelLoader;
+
+        /// <summary>
+        /// The level selected from the lobby UI. Set before launching game.
+        /// </summary>
+        public Level SelectedLevel { get; set; }
+
+        /// <summary>
+        /// The leaderboard for the current game session.
+        /// </summary>
+        public Leaderboard CurrentLeaderboard { get; private set; } = new Leaderboard();
+
+        /// <summary>
+        /// Timer tracking elapsed race time (server-side).
+        /// </summary>
+        public float RaceTimer { get; private set; }
+
+        /// <summary>
+        /// Whether the race is currently active.
+        /// </summary>
+        public bool RaceStarted { get; private set; }
+
+        /// <summary>
+        /// Whether the race has ended.
+        /// </summary>
+        public bool RaceEnded { get; private set; }
 
         public override void OnNetworkSpawn()
         {
@@ -61,9 +90,19 @@ namespace FallGuys.Core
         {
             if (!IsServer) return;
 
-            Debug.Log("[GameManager] Launching Game...");
+            if (SelectedLevel == null)
+            {
+                Debug.LogWarning("[GameManager] No level selected! Using empty level.");
+                SelectedLevel = new Level("Default");
+            }
 
-            // TODO: Select which StockLevel to load
+            Debug.Log($"[GameManager] Launching Game with level: {SelectedLevel.LevelName}");
+
+            // Reset game state for new race
+            CurrentLeaderboard = new Leaderboard();
+            RaceTimer = 0f;
+            RaceStarted = false;
+            RaceEnded = false;
 
             // Load the scene using NGO SceneManager for synchronization
             NetworkManager.Singleton.SceneManager.LoadScene(_gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
@@ -71,12 +110,34 @@ namespace FallGuys.Core
 
         private void LoadLevel()
         {
-            Debug.Log("[GameManager] LoadLevel: Searching for PlayerSpawnZone in scene...");
+            Debug.Log("[GameManager] LoadLevel: Spawning level objects...");
 
-            //Debug.Log($"[GameManager] Loading Level: {(CurrentLevel != null ? CurrentLevel.name : "Default")}");
-            // TODO: Implement the actual level instantiation using StockLevel data.
+            // 1. Spawn level objects via LevelLoader, then spawn players
+            if (_levelLoader != null && SelectedLevel != null)
+            {
+                _levelLoader.OnLevelLoaded += OnLevelObjectsLoaded;
+                _levelLoader.LoadLevel(SelectedLevel);
+            }
+            else
+            {
+                // No level loader or level, spawn players immediately
+                SpawnPlayers();
+            }
+        }
 
-            // 1. Try to find the PlayerSpawnZone in the scene
+        private void OnLevelObjectsLoaded()
+        {
+            if (_levelLoader != null)
+            {
+                _levelLoader.OnLevelLoaded -= OnLevelObjectsLoaded;
+            }
+
+            Debug.Log("[GameManager] Level objects loaded. Spawning players...");
+            SpawnPlayers();
+        }
+
+        private void SpawnPlayers()
+        {
             Eraflo.Common.Player.PlayerSpawnZone spawnZone = Object.FindFirstObjectByType<Eraflo.Common.Player.PlayerSpawnZone>();
 
             if (spawnZone != null)
@@ -107,18 +168,85 @@ namespace FallGuys.Core
             }
         }
 
+        private void Update()
+        {
+            if (!IsServer) return;
+
+            // Increment race timer while race is active
+            if (RaceStarted && !RaceEnded)
+            {
+                RaceTimer += Time.deltaTime;
+            }
+        }
+
+        /// <summary>
+        /// Called by StartAreaBehaviour when countdown finishes.
+        /// </summary>
+        public void StartRace()
+        {
+            if (!IsServer) return;
+            RaceStarted = true;
+            RaceTimer = 0f;
+            Debug.Log("[GameManager] Race started!");
+        }
+
         public void StartGame(Game game)
         {
             if (!IsServer) return;
             Debug.Log($"[GameManager] Starting Game: {game.GameName}");
-            // Additional game start logic (e.g., unlocking movement)
         }
 
+        /// <summary>
+        /// Records a player finishing the race.
+        /// </summary>
+        public void RecordFinish(ulong clientId, string playerName, float finishTime)
+        {
+            if (!IsServer) return;
+            CurrentLeaderboard.RecordFinish(clientId, playerName, finishTime);
+            Debug.Log($"[GameManager] Player {playerName} finished at {finishTime:F2}s");
+
+            // Check if all players finished (optional: end game automatically)
+        }
+
+        /// <summary>
+        /// Called when the game ends (all players finished or time ran out).
+        /// </summary>
         public void EndGame()
         {
             if (!IsServer) return;
+            RaceEnded = true;
             Debug.Log("[GameManager] Ending Game.");
-            // Handle results, display leaderboard, etc.
+
+            // Show leaderboard via ClientRpc
+            ShowEndRaceUIClientRpc();
+        }
+
+        [ClientRpc]
+        private void ShowEndRaceUIClientRpc()
+        {
+            // Find and show the EndRaceUI
+            var endRaceUI = Object.FindFirstObjectByType<EndRaceUI>();
+            if (endRaceUI != null)
+            {
+                endRaceUI.Show(CurrentLeaderboard.GetRankedEntries());
+            }
+        }
+
+        /// <summary>
+        /// Returns all players to the lobby scene.
+        /// </summary>
+        public void ReturnToLobby()
+        {
+            if (!IsServer) return;
+
+            // Unload level objects
+            if (_levelLoader != null)
+            {
+                _levelLoader.UnloadLevel();
+            }
+
+            // Load lobby scene
+            NetworkManager.Singleton.SceneManager.LoadScene(_lobbySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
     }
 }

@@ -20,6 +20,9 @@ namespace FallGuys.Traps.Launcher.States
             LauncherTrapSO config = baseObj.RuntimeData.Config as LauncherTrapSO;
             if (config == null) return;
 
+            // Read overridden values from Blackboard
+            float rotationSpeed = bb.Get<float>("_rotationSpeed", config.RotationSpeed);
+
             // CONTINUOUS SCANNING: Re-verify/Update target every frame.
             // If the target moves out of angle/range or a closer target appears, blackboard "Target" will update.
             Transform target = FindBestTarget(owner, config, bb);
@@ -37,14 +40,18 @@ namespace FallGuys.Traps.Launcher.States
                 Quaternion targetRot = Quaternion.LookRotation(toTarget);
 
                 // Rotates gradually based on config speed
-                owner.transform.rotation = Quaternion.RotateTowards(owner.transform.rotation, targetRot, config.RotationSpeed * Time.deltaTime);
+                owner.transform.rotation = Quaternion.RotateTowards(owner.transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
         }
 
         private Transform FindBestTarget(GameObject owner, LauncherTrapSO config, Blackboard bb)
         {
+            // Read overridden values from Blackboard
+            float detectionRange = bb.Get<float>("_detectionRange", config.DetectionRange);
+            float searchAngleRange = bb.Get<float>("_searchAngleRange", config.SearchAngleRange);
+
             // Find all colliders within detection range
-            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, config.DetectionRange, config.ImpactLayer);
+            Collider[] colliders = Physics.OverlapSphere(owner.transform.position, detectionRange, config.ImpactLayer);
             Transform bestTarget = null;
             float minDistance = float.MaxValue;
 
@@ -69,7 +76,7 @@ namespace FallGuys.Traps.Launcher.States
                 toTarget.y = 0;
                 float angle = Vector3.Angle(initialForward, toTarget);
 
-                if (angle <= config.SearchAngleRange)
+                if (angle <= searchAngleRange)
                 {
                     if (dist < minDistance)
                     {
